@@ -7,7 +7,7 @@
 @{
     var nav = ViewData["Nav"] as string ?? "";
     var title = ViewData["Title"] as string ?? "پنل مدیریت";
-    var clinic = Config["Clinic:Name"] ?? "سلاوی‌مد";
+    var clinic = Config["Clinic:Name"] ?? "Celavimed";
     var csrf = Antiforgery.GetAndStoreTokens(Context).RequestToken;
     var fullName = User.FindFirst("FullName")?.Value ?? User.Identity?.Name ?? "";
     var roleTitle = Roles.All.Where(r => User.IsInRole(r)).Select(Roles.Title).FirstOrDefault() ?? "";
@@ -34,7 +34,7 @@
 <div class="app">
     <aside class="side" aria-label="منوی اصلی">
         <div class="side-brand">
-            <span class="brand-mark">س</span>
+            <span class="brand-mark">C</span>
             <span class="brand-name">@clinic<small>پنل پذیرش و نوبت‌دهی</small></span>
         </div>
         <nav class="side-nav">

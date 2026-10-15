@@ -2,7 +2,7 @@
 @inject IAntiforgery Antiforgery
 @inject IConfiguration Config
 @{
-    var clinic = Config["Clinic:Name"] ?? "سلاوی‌مد";
+    var clinic = Config["Clinic:Name"] ?? "Celavimed";
     var tagline = Config["Clinic:Tagline"] ?? "";
     var phone = Config["Clinic:Phone"];
     var address = Config["Clinic:Address"];
@@ -25,7 +25,7 @@
 <header class="site-head">
     <div class="wrap">
         <a class="brand" href="/">
-            <span class="brand-mark" aria-hidden="true">س</span>
+            <span class="brand-mark" aria-hidden="true">C</span>
             <span><b>@clinic</b><small>@tagline</small></span>
         </a>
         <nav>
