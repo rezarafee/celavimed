@@ -1,0 +1,72 @@
+@model WorkflowStage
+@using Celavimed.Areas.Admin.Controllers
+@{
+    var list = (List<WorkflowStage>)ViewBag.List;
+    var usage = (Dictionary<int, int>)ViewBag.Usage;
+    var editing = Model.Id != 0;
+}
+<div class="page-head">
+    <div>
+        <h2>مراحل پذیرش</h2>
+        <p>مسیری که هر بیمار از رزرو تا خروج طی می‌کند. مرحله‌ی اول همیشه نقطه‌ی ورود رزرو آنلاین است و مرحله‌ی دوم «تایید منشی».</p>
+    </div>
+</div>
+
+<div class="split">
+    <div class="stage-list">
+        @for (var i = 0; i < list.Count; i++)
+        {
+            var s = list[i];
+            <div class="card stage-item" style="--c:@s.Color;@(s.IsActive ? "" : "opacity:.55")">
+                <span class="lane-icon">@Ui.Icon(s.Icon)</span>
+                <div class="stage-item-body">
+                    <b>@s.Name @if (!s.IsActive) { <span class="pill pill-gray">غیرفعال</span> }</b>
+                    <span>@(s.Description ?? "بدون توضیح") · @(usage.TryGetValue(s.Id, out var n) ? n : 0) بیمار الان در این مرحله</span>
+                </div>
+                <div class="cell-actions">
+                    <form asp-antiforgery="true" method="post" action="/admin/stages/@s.Id/move"><input type="hidden" name="dir" value="-1" /><button class="btn btn-ghost btn-sm btn-icon" @(i == 0 ? "disabled" : "") aria-label="بالا">@Ui.Icon("chevron-right", "icon-sm")</button></form>
+                    <form asp-antiforgery="true" method="post" action="/admin/stages/@s.Id/move"><input type="hidden" name="dir" value="1" /><button class="btn btn-ghost btn-sm btn-icon" @(i == list.Count - 1 ? "disabled" : "") aria-label="پایین">@Ui.Icon("chevron-left", "icon-sm")</button></form>
+                    <a class="btn btn-ghost btn-sm btn-icon" href="/admin/stages?edit=@s.Id" aria-label="ویرایش">@Ui.Icon("pencil", "icon-sm")</a>
+                    <form asp-antiforgery="true" method="post" action="/admin/stages/@s.Id/delete" data-confirm="«@s.Name» حذف شود؟"><button class="btn btn-ghost btn-sm btn-icon range-del" aria-label="حذف">@Ui.Icon("trash-2", "icon-sm")</button></form>
+                </div>
+            </div>
+        }
+    </div>
+
+    <form asp-antiforgery="true" class="card card-pad" method="post" action="/admin/stages/save">
+        <h3 style="font-size:16px;margin-bottom:16px">@(editing ? "ویرایش مرحله" : "مرحله‌ی جدید")</h3>
+        <input type="hidden" asp-for="Id" />
+        <div class="field">
+            <label asp-for="Name">نام مرحله</label>
+            <input class="input" asp-for="Name" placeholder="مثلا عکاسی قبل از درمان" required />
+        </div>
+        <div class="field">
+            <label asp-for="Description">توضیح</label>
+            <input class="input" asp-for="Description" />
+        </div>
+        <div class="grid-form">
+            <div class="field">
+                <label asp-for="Color">رنگ کادر</label>
+                <input class="color-input" type="color" asp-for="Color" />
+            </div>
+            <div class="field">
+                <label asp-for="SortOrder">ترتیب</label>
+                <input class="input" type="number" asp-for="SortOrder" />
+            </div>
+        </div>
+        <div class="field">
+            <span class="label">آیکون</span>
+            <div class="chips-select">
+                @foreach (var ic in StagesController.IconChoices)
+                {
+                    <label title="@ic"><input type="radio" name="Icon" value="@ic" @(Model.Icon == ic ? "checked" : "") /><span style="padding:8px">@Ui.Icon(ic, "icon-sm")</span></label>
+                }
+            </div>
+        </div>
+        <label class="check" style="margin-bottom:18px"><input type="checkbox" asp-for="IsActive" />فعال است</label>
+        <div style="display:flex;gap:8px">
+            <button class="btn btn-primary" type="submit">@Ui.Icon("check")@(editing ? "ذخیره" : "افزودن مرحله")</button>
+            @if (editing) { <a class="btn btn-ghost" href="/admin/stages">انصراف</a> }
+        </div>
+    </form>
+</div>

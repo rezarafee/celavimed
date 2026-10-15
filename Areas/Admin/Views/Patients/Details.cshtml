@@ -1,0 +1,131 @@
+@model PatientSummaryVm
+@{
+    var p = Model.Patient;
+    var first = Model.Appointments.Count > 0 ? Model.Appointments.Min(a => a.Date) : (DateOnly?)null;
+    var stageIndex = Model.Stages.Select((s, i) => (s.Id, i)).ToDictionary(x => x.Id, x => x.i);
+}
+@functions {
+    IHtmlContent Visit(Appointment a, Dictionary<int, int> stageIndex, int stageCount)
+    {
+        var (_, m, d) = Jalali.Parts(a.Date);
+        var off = a.Status != AppointmentStatus.Active;
+        var idx = stageIndex.TryGetValue(a.StageId, out var i) ? i : 0;
+        var sb = new System.Text.StringBuilder();
+        string E(string? s) => System.Net.WebUtility.HtmlEncode(s ?? "");
+        sb.Append($"<article class=\"card visit{(off ? " is-off" : "")}\" style=\"--c:{E(a.Stage.Color)}\">");
+        sb.Append($"<div class=\"visit-date\"><b>{d}</b><span>{Jalali.MonthNames[m - 1]}</span><small>{Jalali.Parts(a.Date).Year}</small></div>");
+        sb.Append("<div class=\"visit-body\">");
+        sb.Append($"<h4>{E(a.Service?.Name ?? "بدون خدمت مشخص")}");
+        if (a.Status == AppointmentStatus.Cancelled) sb.Append("<span class=\"pill pill-red\">لغو شده</span>");
+        else if (a.Status == AppointmentStatus.NoShow) sb.Append("<span class=\"pill pill-amber\">نیامد</span>");
+        else sb.Append($"<span class=\"stage-tag\" style=\"--c:{E(a.Stage.Color)}\">{E(a.Stage.Name)}</span>");
+        sb.Append("</h4><div class=\"visit-meta\">");
+        sb.Append($"<span>{Ui.Icon("stethoscope", "icon-sm")}{E(a.Doctor.FullName)}</span>");
+        sb.Append($"<span>{Ui.Icon("clock", "icon-sm")}{Jalali.DayName(a.Date.DayOfWeek)}، ساعت {Jalali.Time(a.StartTime)}</span>");
+        if (a.Amount.HasValue) sb.Append($"<span>{Ui.Icon("wallet", "icon-sm")}{Ui.Money(a.Amount)} تومان</span>");
+        sb.Append("</div>");
+        if (!off)
+        {
+            sb.Append("<div class=\"mini-steps\" aria-hidden=\"true\">");
+            for (var k = 0; k < stageCount; k++) sb.Append(k <= idx ? "<i class=\"on\"></i>" : "<i></i>");
+            sb.Append("</div>");
+        }
+        var lastNote = a.StageLogs.Where(l => !string.IsNullOrEmpty(l.Note) && l.ChangedBy != "رزرو آنلاین").OrderByDescending(l => l.ChangedAt).FirstOrDefault()?.Note;
+        if (!string.IsNullOrEmpty(a.Notes)) sb.Append($"<p class=\"visit-note\">{E(a.Notes)}</p>");
+        else if (!string.IsNullOrEmpty(lastNote)) sb.Append($"<p class=\"visit-note\">{E(lastNote)}</p>");
+        sb.Append("</div><div class=\"visit-side\">");
+        if (a.Amount.HasValue) sb.Append(a.IsPaid ? "<span class=\"pill pill-green pill-dot\">پرداخت شده</span>" : "<span class=\"pill pill-amber pill-dot\">پرداخت نشده</span>");
+        else sb.Append("<span></span>");
+        sb.Append($"<a class=\"btn btn-ghost btn-sm\" href=\"/admin/appointments/{a.Id}\">پرونده‌ی نوبت{Ui.Icon("chevron-left", "icon-sm")}</a>");
+        sb.Append("</div></article>");
+        return new HtmlString(sb.ToString());
+    }
+}
+
+<section class="pt-hero">
+    <span class="pt-avatar" aria-hidden="true">@Ui.Initial(p.FullName)</span>
+    <div style="position:relative;z-index:1;min-width:0">
+        <h2>@p.FullName</h2>
+        <div class="pt-meta">
+            <span>@Ui.Icon("phone", "icon-sm")<span class="ltr">@Ui.Mobile(p.Mobile)</span></span>
+            @if (first.HasValue) { <span>@Ui.Icon("calendar-days", "icon-sm")اولین نوبت @Jalali.Long(first.Value)</span> }
+            @if (Model.Doctors.Count > 0) { <span>@Ui.Icon("stethoscope", "icon-sm")@string.Join("، ", Model.Doctors)</span> }
+        </div>
+    </div>
+    <div class="pt-actions">
+        <a class="btn btn-outline" href="tel:@p.Mobile">@Ui.Icon("phone-call", "icon-sm")تماس</a>
+        @if (User.IsInRole(Roles.Secretary) || User.IsInRole(Roles.Admin) || User.IsInRole(Roles.SuperAdmin))
+        {
+            <a class="btn btn-primary" href="/admin/appointments/new?mobile=@p.Mobile&name=@Uri.EscapeDataString(p.FullName)">@Ui.Icon("calendar-plus", "icon-sm")نوبت جدید</a>
+        }
+    </div>
+</section>
+
+<section class="pt-stats">
+    <div class="card stat"><div class="stat-label">کل نوبت‌ها</div><div class="stat-value">@Model.Appointments.Count</div></div>
+    <div class="card stat"><div class="stat-label">مراجعه‌ی کامل</div><div class="stat-value" style="color:var(--mineral)">@Model.Completed</div></div>
+    <div class="card stat"><div class="stat-label">لغو / نیامد</div><div class="stat-value" style="color:var(--danger)">@(Model.Cancelled + Model.NoShow)</div></div>
+    <div class="card stat"><div class="stat-label">پرداخت‌شده (تومان)</div><div class="stat-value">@Ui.Money(Model.TotalPaid)</div></div>
+    <div class="card stat"><div class="stat-label">مانده (تومان)</div><div class="stat-value" style="color:@(Model.TotalUnpaid > 0 ? "var(--amber)" : "inherit")">@Ui.Money(Model.TotalUnpaid)</div></div>
+</section>
+
+<div class="split">
+    <div>
+        @if (Model.Upcoming.Any())
+        {
+            <div class="pt-section-title" style="margin-top:0"><h3>نوبت‌های پیش رو</h3><span>@Model.Upcoming.Count() نوبت</span></div>
+            <div class="visits">
+                @foreach (var a in Model.Upcoming) { @Visit(a, stageIndex, Model.Stages.Count) }
+            </div>
+        }
+        <div class="pt-section-title" style="@(Model.Upcoming.Any() ? "" : "margin-top:0")"><h3>سوابق بیمار</h3><span>@Model.Past.Count() مراجعه، از جدید به قدیم</span></div>
+        @if (!Model.Past.Any())
+        {
+            <div class="card empty">@Ui.Icon("history")<b>هنوز سابقه‌ای ثبت نشده</b>بعد از اولین مراجعه، سوابق اینجا جمع می‌شود.</div>
+        }
+        else
+        {
+            <div class="visits">
+                @foreach (var a in Model.Past) { @Visit(a, stageIndex, Model.Stages.Count) }
+            </div>
+        }
+    </div>
+
+    <div class="grid pt-side" style="align-content:start">
+        <form asp-antiforgery="true" class="card card-pad" method="post" action="/admin/patients/@p.Id">
+            <h3 style="font-size:16px;margin-bottom:16px">مشخصات بیمار</h3>
+            <fieldset @(Model.CanEdit ? "" : "disabled") style="border:0;padding:0;margin:0">
+                <div class="field">
+                    <label for="pt-name">نام و نام خانوادگی</label>
+                    <input class="input" id="pt-name" name="fullName" value="@p.FullName" required />
+                </div>
+                <div class="field">
+                    <span class="label">موبایل</span>
+                    <div class="input ltr-input" style="display:flex;align-items:center;background:var(--surface-2)">@p.Mobile</div>
+                    <span class="hint">موبایل از پرونده‌ی هر نوبت قابل تغییر است.</span>
+                </div>
+                <div class="field">
+                    <label for="pt-notes">یادداشت دائمی</label>
+                    <textarea class="textarea" id="pt-notes" name="notes" placeholder="حساسیت دارویی، سابقه‌ی تزریق، ترجیحات بیمار و ...">@p.Notes</textarea>
+                </div>
+                @if (Model.CanEdit)
+                {
+                    <button class="btn btn-primary" type="submit">@Ui.Icon("check")ذخیره</button>
+                }
+            </fieldset>
+        </form>
+
+        @if (Model.TopServices.Count > 0)
+        {
+            <section class="card card-pad">
+                <h3 style="font-size:16px;margin-bottom:12px">خدمات دریافت‌شده</h3>
+                <div style="display:flex;flex-wrap:wrap;gap:8px">
+                    @foreach (var (name, count) in Model.TopServices)
+                    {
+                        <span class="pill pill-orchid">@name <b>×@count</b></span>
+                    }
+                </div>
+            </section>
+        }
+    </div>
+</div>

@@ -1,0 +1,50 @@
+@using Microsoft.AspNetCore.Antiforgery
+@inject IAntiforgery Antiforgery
+@inject IConfiguration Config
+@{
+    var clinic = Config["Clinic:Name"] ?? "سلاوی‌مد";
+    var tagline = Config["Clinic:Tagline"] ?? "";
+    var phone = Config["Clinic:Phone"];
+    var address = Config["Clinic:Address"];
+}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="csrf" content="@Antiforgery.GetAndStoreTokens(Context).RequestToken" />
+    <meta name="theme-color" content="#24122A" />
+    <meta name="description" content="رزرو آنلاین نوبت @clinic — @tagline" />
+    <title>@(ViewData["Title"] ?? "رزرو آنلاین نوبت") · @clinic</title>
+    <link rel="icon" href="/img/favicon.svg" type="image/svg+xml" />
+    <link rel="preload" href="/fonts/Vazirmatn-FD-Regular.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="~/css/base.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/public.css" asp-append-version="true" />
+</head>
+<body class="public">
+<header class="site-head">
+    <div class="wrap">
+        <a class="brand" href="/">
+            <span class="brand-mark" aria-hidden="true">س</span>
+            <span><b>@clinic</b><small>@tagline</small></span>
+        </a>
+        <nav>
+            @if (!string.IsNullOrEmpty(phone))
+            {
+                <a href="tel:@phone">@Ui.Icon("phone", "icon-sm")<span class="nav-text ltr">@phone</span></a>
+            }
+        </nav>
+    </div>
+</header>
+@RenderBody()
+<footer class="site-foot">
+    <div class="wrap">
+        <b>@clinic</b>
+        @if (!string.IsNullOrEmpty(address)) { <span>@Ui.Icon("map-pin", "icon-sm")@address</span> }
+        @if (!string.IsNullOrEmpty(phone)) { <span>@Ui.Icon("phone", "icon-sm")<a class="ltr" href="tel:@phone">@phone</a></span> }
+        <a class="staff" href="/account/login">ورود همکاران</a>
+    </div>
+</footer>
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

@@ -1,0 +1,40 @@
+@model List<Celavimed.Areas.Admin.Controllers.PatientsController.PatientRow>
+<div class="page-head">
+    <div>
+        <h2>بیماران</h2>
+        <p>هر شماره موبایل یک پرونده است؛ رزروهای بعدی همان شماره به همین پرونده اضافه می‌شوند.</p>
+    </div>
+</div>
+<section class="card">
+    <form class="filters" method="get">
+        <div class="field" style="flex:1">
+            <label class="label" for="pq">جستجو</label>
+            <input class="input" id="pq" name="q" value="@ViewBag.Q" placeholder="نام یا موبایل" />
+        </div>
+        <button class="btn btn-outline" aria-label="جستجو">@Ui.Icon("search")</button>
+    </form>
+    @if (Model.Count == 0)
+    {
+        <div class="empty">@Ui.Icon("users")<b>بیماری پیدا نشد</b></div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table class="table">
+                <thead><tr><th>نام</th><th>موبایل</th><th>تعداد نوبت</th><th>آخرین نوبت</th><th></th></tr></thead>
+                <tbody>
+                @foreach (var p in Model)
+                {
+                    <tr>
+                        <td><a href="/admin/patients/@p.Id" style="color:inherit"><b>@p.FullName</b></a></td>
+                        <td><a class="ltr" href="tel:@p.Mobile">@Ui.Mobile(p.Mobile)</a></td>
+                        <td>@p.Visits</td>
+                        <td class="muted">@(p.LastVisit is { } d ? Jalali.Long(d) : "—")</td>
+                        <td><div class="cell-actions"><a class="btn btn-ghost btn-sm" href="/admin/patients/@p.Id">خلاصه و سوابق</a></div></td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>

@@ -1,0 +1,169 @@
+/* ============ Celavimed — پایه‌ی مشترک ============ */
+@font-face { font-family: "Vazirmatn"; src: url("../fonts/Vazirmatn-FD-Light.woff2") format("woff2"); font-weight: 300; font-display: swap; }
+@font-face { font-family: "Vazirmatn"; src: url("../fonts/Vazirmatn-FD-Regular.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Vazirmatn"; src: url("../fonts/Vazirmatn-FD-Medium.woff2") format("woff2"); font-weight: 500; font-display: swap; }
+@font-face { font-family: "Vazirmatn"; src: url("../fonts/Vazirmatn-FD-SemiBold.woff2") format("woff2"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "Vazirmatn"; src: url("../fonts/Vazirmatn-FD-Bold.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+@font-face { font-family: "Vazirmatn"; src: url("../fonts/Vazirmatn-FD-ExtraBold.woff2") format("woff2"); font-weight: 800; font-display: swap; }
+@font-face { font-family: "Naskh"; src: url("../fonts/noto-naskh-arabic-arabic-500-normal.woff2") format("woff2"); font-weight: 500; font-display: swap; }
+@font-face { font-family: "Naskh"; src: url("../fonts/noto-naskh-arabic-arabic-700-normal.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+
+:root {
+  /* پالت: آلوی تیره، ارکیده، صورتی کوارتز، سبز معدنی، چینی سرد */
+  --plum-900: #24122A;
+  --plum-800: #321A3A;
+  --plum-700: #4A2852;
+  --orchid: #7B4A82;
+  --orchid-600: #6A3C71;
+  --orchid-100: #F1E7F2;
+  --quartz: #EDD3D0;
+  --quartz-200: #F6E7E5;
+  --mineral: #2F7F78;
+  --mineral-100: #E3F1EF;
+  --amber: #B07A2E;
+  --amber-100: #F7EEDF;
+  --danger: #B23A48;
+  --danger-100: #F9E4E6;
+
+  --bg: #F6F4F8;
+  --surface: #FFFFFF;
+  --surface-2: #FBFAFC;
+  --line: #E7E2EA;
+  --line-strong: #D6CEDB;
+  --text: #24122A;
+  --text-2: #5E5266;
+  --text-3: #8C8293;
+
+  --radius-sm: 8px;
+  --radius: 14px;
+  --radius-lg: 22px;
+  --arch: 999px 999px 18px 18px;
+
+  --focus: 0 0 0 3px rgba(123, 74, 130, .28);
+  --shadow-pop: 0 18px 40px -18px rgba(36, 18, 42, .35);
+
+  --font: "Vazirmatn", Tahoma, sans-serif;
+  --display: "Naskh", "Vazirmatn", serif;
+  color-scheme: light;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.75;
+  color: var(--text);
+  background: var(--bg);
+  text-rendering: optimizeLegibility;
+}
+img { max-width: 100%; display: block; }
+a { color: var(--orchid); text-decoration: none; }
+a:hover { color: var(--orchid-600); }
+h1, h2, h3, h4 { margin: 0; line-height: 1.4; font-weight: 700; }
+p { margin: 0; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: none; box-shadow: var(--focus); }
+
+.icon { width: 20px; height: 20px; flex: none; display: inline-block; vertical-align: middle; }
+.icon-sm { width: 16px; height: 16px; }
+.icon-lg { width: 24px; height: 24px; }
+.ltr { direction: ltr; unicode-bidi: isolate; display: inline-block; }
+.muted { color: var(--text-2); }
+.faint { color: var(--text-3); }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ---------- دکمه‌ها ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 42px; padding: 0 18px;
+  border: 1px solid transparent; border-radius: 11px;
+  font-weight: 600; font-size: 14.5px; white-space: nowrap;
+  cursor: pointer; transition: background .15s, border-color .15s, color .15s, transform .1s;
+  background: var(--surface); color: var(--text);
+}
+.btn:active { transform: translateY(1px); }
+.btn-primary { background: var(--orchid); color: #fff; }
+.btn-primary:hover { background: var(--orchid-600); color: #fff; }
+.btn-dark { background: var(--plum-900); color: #fff; }
+.btn-dark:hover { background: var(--plum-700); color: #fff; }
+.btn-outline { border-color: var(--line-strong); background: var(--surface); }
+.btn-outline:hover { border-color: var(--orchid); color: var(--orchid); }
+.btn-ghost { background: transparent; color: var(--text-2); }
+.btn-ghost:hover { background: var(--orchid-100); color: var(--orchid-600); }
+.btn-success { background: var(--mineral); color: #fff; }
+.btn-success:hover { background: #276A64; color: #fff; }
+.btn-danger { background: var(--danger-100); color: var(--danger); }
+.btn-danger:hover { background: var(--danger); color: #fff; }
+.btn-sm { min-height: 34px; padding: 0 12px; font-size: 13.5px; border-radius: 9px; }
+.btn-icon { width: 40px; padding: 0; }
+.btn-sm.btn-icon { width: 34px; }
+.btn[disabled], .btn.disabled { opacity: .45; pointer-events: none; }
+.btn-block { width: 100%; }
+
+/* ---------- فرم ---------- */
+.field { display: grid; gap: 6px; margin-bottom: 16px; }
+.field > label, .label { font-size: 13.5px; font-weight: 600; color: var(--text-2); }
+.input, .select, .textarea {
+  width: 100%; min-height: 44px; padding: 9px 14px;
+  border: 1px solid var(--line-strong); border-radius: 11px;
+  background: var(--surface); font-size: 15px;
+  transition: border-color .15s, box-shadow .15s;
+}
+.textarea { min-height: 96px; resize: vertical; line-height: 1.8; }
+.input:focus, .select:focus, .textarea:focus { outline: none; border-color: var(--orchid); box-shadow: var(--focus); }
+.input.ltr-input { direction: ltr; text-align: right; }
+.select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238C8293' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-position: 14px 50%; background-size: 16px; background-repeat: no-repeat; padding-left: 38px; }
+.hint { font-size: 12.5px; color: var(--text-3); }
+.field-error, .field-validation-error { font-size: 13px; color: var(--danger); }
+.input-validation-error { border-color: var(--danger) !important; }
+.validation-summary-errors ul { margin: 0; padding-inline-start: 18px; }
+
+.check { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
+.check input { width: 18px; height: 18px; accent-color: var(--orchid); }
+
+.chips-select { display: flex; flex-wrap: wrap; gap: 8px; }
+.chips-select label { position: relative; }
+.chips-select input { position: absolute; opacity: 0; pointer-events: none; }
+.chips-select span {
+  display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px;
+  border: 1px solid var(--line-strong); border-radius: 999px; font-size: 14px; cursor: pointer;
+  transition: all .15s; background: var(--surface);
+}
+.chips-select input:checked + span { background: var(--orchid-100); border-color: var(--orchid); color: var(--orchid-600); font-weight: 600; }
+.chips-select input:focus-visible + span { box-shadow: var(--focus); }
+
+/* ---------- پیام‌ها ---------- */
+.alert { display: flex; gap: 10px; align-items: flex-start; padding: 12px 16px; border-radius: 12px; font-size: 14px; margin-bottom: 16px; }
+.alert-success { background: var(--mineral-100); color: #1E5A55; }
+.alert-error { background: var(--danger-100); color: #8A2532; }
+.alert-info { background: var(--orchid-100); color: var(--orchid-600); }
+
+/* ---------- تقویم شمسی (مشترک بین سایت و پنل) ---------- */
+.jcal { user-select: none; }
+.jcal-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 14px; }
+.jcal-title { font-weight: 700; font-size: 17px; }
+.jcal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.jcal-dow { text-align: center; font-size: 12.5px; color: var(--text-3); font-weight: 600; padding-bottom: 4px; }
+.jcal-day {
+  position: relative; aspect-ratio: 1 / 1; border: 0; border-radius: 12px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: transparent; color: var(--text-3); font-size: 15px; cursor: default; padding: 0;
+}
+.jcal-day.is-friday { color: #C08A8A; }
+.jcal-day.is-open { background: var(--quartz-200); color: var(--plum-900); font-weight: 600; cursor: pointer; transition: background .15s, transform .1s; }
+.jcal-day.is-open:hover { background: var(--quartz); }
+.jcal-day.is-full { background: repeating-linear-gradient(-45deg, #F3EFF4, #F3EFF4 4px, #EAE4EC 4px, #EAE4EC 8px); color: var(--text-3); text-decoration: line-through; }
+.jcal-day.is-today::after { content: ""; position: absolute; bottom: 7px; width: 5px; height: 5px; border-radius: 50%; background: var(--orchid); }
+.jcal-day.is-selected { background: var(--plum-900) !important; color: #fff; }
+.jcal-day.is-selected::after { background: var(--quartz); }
+.jcal-day .jcal-count { white-space: nowrap; font-size: 10.5px; font-weight: 500; opacity: .75; line-height: 1; margin-top: 2px; }
+.jcal-day.is-pickable { cursor: pointer; color: var(--text); }
+.jcal-day.is-pickable:hover { background: var(--orchid-100); }
+.jcal-empty { visibility: hidden; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}

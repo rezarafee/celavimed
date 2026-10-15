@@ -1,0 +1,20 @@
+@model Celavimed.Areas.Admin.Models.JDateField
+<div class="jdate" data-jdate @(Model.AllowEmpty ? "data-allow-empty" : "") @(Model.SubmitOnChange ? "data-submit" : "")>
+    <input type="hidden" name="@Model.Name" value="@(Model.Value?.ToString("yyyy-MM-dd"))" />
+    <button type="button" class="jdate-btn">
+        @Ui.Icon("calendar-days")
+        <span class="jdate-label" data-placeholder="@Model.Placeholder">@(Model.Value is { } v ? Jalali.Long(v) : Model.Placeholder)</span>
+    </button>
+    <div class="jdate-pop jcal" role="dialog" aria-label="انتخاب تاریخ">
+        <div class="jcal-head">
+            <button type="button" class="btn btn-ghost btn-sm btn-icon" data-prev aria-label="ماه قبل">@Ui.Icon("chevron-right")</button>
+            <span class="jcal-title"></span>
+            <button type="button" class="btn btn-ghost btn-sm btn-icon" data-next aria-label="ماه بعد">@Ui.Icon("chevron-left")</button>
+        </div>
+        <div class="jcal-grid"></div>
+        <div class="jdate-foot">
+            <button type="button" class="btn btn-ghost btn-sm" data-today>امروز</button>
+            <button type="button" class="btn btn-ghost btn-sm" data-clear>همه‌ی روزها</button>
+        </div>
+    </div>
+</div>

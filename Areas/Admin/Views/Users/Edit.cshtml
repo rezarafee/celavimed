@@ -1,0 +1,71 @@
+@model UserForm
+@{ var isNew = string.IsNullOrEmpty(Model.Id); }
+<div class="page-head">
+    <div>
+        <h2>@(isNew ? "کاربر جدید" : Model.FullName)</h2>
+        <p>نام کاربری و رمز را به خود شخص بدهید تا وارد پنل شود.</p>
+    </div>
+    <div class="page-actions"><a class="btn btn-ghost" href="/admin/users">@Ui.Icon("arrow-right")بازگشت</a></div>
+</div>
+
+<form asp-antiforgery="true" class="split" method="post" action="/admin/users/save">
+    <input type="hidden" asp-for="Id" />
+    <div class="card card-pad">
+        <div asp-validation-summary="All" class="alert alert-error"></div>
+        <div class="grid-form">
+            <div class="field">
+                <label asp-for="FullName">نام کامل</label>
+                <input class="input" asp-for="FullName" />
+            </div>
+            <div class="field">
+                <label asp-for="PhoneNumber">موبایل</label>
+                <input class="input ltr-input" asp-for="PhoneNumber" inputmode="tel" />
+            </div>
+            <div class="field">
+                <label asp-for="UserName">نام کاربری (انگلیسی)</label>
+                <input class="input ltr-input" asp-for="UserName" autocomplete="off" />
+            </div>
+            <div class="field">
+                <label asp-for="Password">@(isNew ? "رمز عبور" : "رمز عبور جدید")</label>
+                <input class="input ltr-input" asp-for="Password" type="password" autocomplete="new-password" />
+                <span class="hint">@(isNew ? "حداقل ۸ کاراکتر و یک عدد." : "اگر نمی‌خواهید عوض شود، خالی بگذارید.")</span>
+            </div>
+            <div class="field span-2">
+                <span class="label">نقش</span>
+                <div class="chips-select" id="role-chips">
+                    @foreach (var r in Model.AssignableRoles)
+                    {
+                        <label><input type="radio" name="Role" value="@r" @(Model.Role == r ? "checked" : "") /><span>@Roles.Title(r)</span></label>
+                    }
+                </div>
+            </div>
+            <div class="field span-2" id="doctor-pick">
+                <span class="label">پزشکانی که این منشی مدیریت می‌کند</span>
+                <div class="chips-select">
+                    @foreach (var d in Model.AllDoctors)
+                    {
+                        <label><input type="checkbox" name="DoctorIds" value="@d.Id" @(Model.DoctorIds.Contains(d.Id) ? "checked" : "") /><span>@d.FullName</span></label>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="grid">
+        <div class="card card-pad">
+            <label class="check"><input type="checkbox" asp-for="IsActive" />حساب فعال است</label>
+            <p class="hint" style="margin-top:6px">کاربر غیرفعال نمی‌تواند وارد پنل شود.</p>
+        </div>
+        <button class="btn btn-primary btn-block" type="submit">@Ui.Icon("check")ذخیره‌ی کاربر</button>
+    </div>
+</form>
+
+@section Scripts {
+<script>
+    (function () {
+        const pick = document.getElementById("doctor-pick");
+        const sync = () => pick.hidden = document.querySelector("#role-chips input:checked")?.value !== "Secretary";
+        document.querySelectorAll("#role-chips input").forEach(i => i.addEventListener("change", sync));
+        sync();
+    })();
+</script>
+}

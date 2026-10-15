@@ -1,0 +1,194 @@
+@model AppointmentDetailVm
+@{
+    var a = Model.Appointment;
+    var currentIdx = Model.Stages.FindIndex(s => s.Id == a.StageId);
+    var active = a.Status == AppointmentStatus.Active;
+    var reached = a.StageLogs.GroupBy(l => l.StageId).ToDictionary(g => g.Key, g => g.Max(l => l.ChangedAt));
+    var editDate = new JDateField("Date", a.Date);
+    var duration = (int)(a.EndTime - a.StartTime).TotalMinutes;
+}
+<div class="page-head">
+    <div>
+        <h2>@a.Patient.FullName</h2>
+        <p>
+            نوبت @Jalali.Long(a.Date)، ساعت @Jalali.Time(a.StartTime) با @a.Doctor.FullName
+            · کد پیگیری <b class="ltr">@a.TrackingCode</b>
+        </p>
+    </div>
+    <div class="page-actions">
+        <a class="btn btn-outline" href="tel:@a.Patient.Mobile">@Ui.Icon("phone")<span class="ltr">@Ui.Mobile(a.Patient.Mobile)</span></a>
+        <a class="btn btn-ghost" href="/admin/patients/@a.PatientId">@Ui.Icon("history")سوابق بیمار</a>
+        <a class="btn btn-ghost" href="/admin/board?date=@a.Date.ToString("yyyy-MM-dd")">@Ui.Icon("square-kanban")مراحل این روز</a>
+    </div>
+</div>
+
+@if (!active)
+{
+    <div class="alert alert-error">
+        @Ui.Icon("ban")
+        <div style="flex:1">این نوبت @(a.Status == AppointmentStatus.NoShow ? "با وضعیت «بیمار نیامد»" : "لغو") ثبت شده و ساعتش برای بقیه آزاد است.</div>
+        @if (Model.CanEdit)
+        {
+            <form asp-antiforgery="true" method="post" action="/admin/appointments/@a.Id/restore"><button class="btn btn-sm btn-outline">@Ui.Icon("rotate-ccw", "icon-sm")برگرداندن نوبت</button></form>
+        }
+    </div>
+}
+
+<section class="card card-pad" style="margin-bottom:18px">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap">
+        <h3 style="font-size:16px">مسیر بیمار در مرکز</h3>
+        @if (active)
+        {
+            <span class="stage-tag" style="--c:@a.Stage.Color">الان: @a.Stage.Name</span>
+        }
+    </div>
+    <form asp-antiforgery="true" method="post" action="/admin/appointments/@a.Id/stage">
+        <div class="stepper" role="list">
+            @for (var i = 0; i < Model.Stages.Count; i++)
+            {
+                var s = Model.Stages[i];
+                var cls = i < currentIdx ? "done" : i == currentIdx ? "current" : "";
+                <div class="step @cls" style="--c:@s.Color" role="listitem">
+                    @if (Model.CanEdit && active && i != currentIdx)
+                    {
+                        <button type="submit" name="stageId" value="@s.Id" title="انتقال به «@s.Name»">
+                            <span class="step-box">@Ui.Icon(i < currentIdx ? "check" : s.Icon)</span>
+                            <span class="step-name">@s.Name</span>
+                        </button>
+                    }
+                    else
+                    {
+                        <span class="step-box">@Ui.Icon(i < currentIdx ? "check" : s.Icon)</span>
+                        <span class="step-name">@s.Name</span>
+                    }
+                    <span class="step-time">@(reached.TryGetValue(s.Id, out var t) ? Jalali.DateTimeShort(t).Split(" · ").Last() : "—")</span>
+                </div>
+            }
+        </div>
+        @if (Model.CanEdit && active)
+        {
+            <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;align-items:center">
+                <input class="input" name="note" placeholder="یادداشت برای این تغییر (اختیاری)" style="flex:1;min-width:220px" />
+                @if (currentIdx < Model.Stages.Count - 1)
+                {
+                    <button class="btn btn-primary" type="submit" name="stageId" value="@Model.Stages[currentIdx + 1].Id">
+                        رفتن به «@Model.Stages[currentIdx + 1].Name»@Ui.Icon("arrow-left", "icon-sm")
+                    </button>
+                }
+            </div>
+            <p class="hint" style="margin-top:8px">برای جابه‌جایی به هر مرحله‌ی دیگر، روی کادر همان مرحله بزنید.</p>
+        }
+    </form>
+</section>
+
+<div class="split">
+    <form asp-antiforgery="true" class="card card-pad" method="post" action="/admin/appointments/@a.Id/edit">
+        <h3 style="font-size:16px;margin-bottom:16px">ویرایش پرونده</h3>
+        <input type="hidden" name="Id" value="@a.Id" />
+        <fieldset @(Model.CanEdit ? "" : "disabled") style="border:0;padding:0;margin:0">
+            <div class="grid-form">
+                <div class="field">
+                    <label for="e-name">نام بیمار</label>
+                    <input class="input" id="e-name" name="PatientName" value="@a.Patient.FullName" required />
+                </div>
+                <div class="field">
+                    <label for="e-mobile">موبایل</label>
+                    <input class="input ltr-input" id="e-mobile" name="PatientMobile" value="@a.Patient.Mobile" inputmode="tel" required />
+                </div>
+                <div class="field">
+                    <label for="e-doc">پزشک</label>
+                    <select class="select" id="e-doc" name="DoctorId">
+                        @foreach (var d in Model.Doctors) { <option value="@d.Id" selected="@(d.Id == a.DoctorId)">@d.FullName</option> }
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="e-svc">خدمت</label>
+                    <select class="select" id="e-svc" name="ServiceId">
+                        <option value="">—</option>
+                        @foreach (var s in Model.Services) { <option value="@s.Id" selected="@(s.Id == a.ServiceId)">@s.Name</option> }
+                    </select>
+                </div>
+                <div class="field">
+                    <span class="label">روز</span>
+                    <partial name="_JDate" model="editDate" />
+                </div>
+                <div class="field" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                    <div style="display:grid;gap:6px">
+                        <label class="label" for="e-time">ساعت</label>
+                        <input class="input" id="e-time" type="time" name="StartTime" value="@Jalali.Time(a.StartTime)" step="300" style="direction:ltr;text-align:center" />
+                    </div>
+                    <div style="display:grid;gap:6px">
+                        <label class="label" for="e-dur">مدت (دقیقه)</label>
+                        <input class="input" id="e-dur" type="number" name="DurationMinutes" value="@duration" min="5" max="480" step="5" />
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="e-amount">مبلغ (تومان)</label>
+                    <input class="input ltr-input" id="e-amount" name="Amount" value="@a.Amount" inputmode="numeric" placeholder="برای واحد مالی" />
+                </div>
+                <div class="field" style="align-content:end">
+                    <label class="check" style="min-height:44px"><input type="checkbox" name="IsPaid" value="true" @(a.IsPaid ? "checked" : "") />هزینه پرداخت شده</label>
+                </div>
+                <div class="field span-2">
+                    <label for="e-notes">یادداشت</label>
+                    <textarea class="textarea" id="e-notes" name="Notes" placeholder="یادداشت مشاوره، دوز تزریق، توضیح مالی و ...">@a.Notes</textarea>
+                </div>
+            </div>
+            @if (Model.CanEdit)
+            {
+                <button class="btn btn-primary" type="submit">@Ui.Icon("check")ذخیره‌ی پرونده</button>
+            }
+        </fieldset>
+    </form>
+
+    <div class="grid">
+        <section class="card card-pad">
+            <h3 style="font-size:16px;margin-bottom:16px">تاریخچه</h3>
+            <ul class="history">
+                @foreach (var l in a.StageLogs.OrderByDescending(l => l.ChangedAt))
+                {
+                    <li style="--c:@l.Stage.Color">
+                        <b>@l.Stage.Name</b>
+                        <small>@Jalali.DateTimeShort(l.ChangedAt)@(l.ChangedBy != null ? " · " + l.ChangedBy : "")</small>
+                        @if (!string.IsNullOrEmpty(l.Note)) { <p>@l.Note</p> }
+                    </li>
+                }
+                <li style="--c:var(--text-3)">
+                    <b>ثبت نوبت</b>
+                    <small>@Jalali.DateTimeShort(a.CreatedAt)</small>
+                </li>
+            </ul>
+        </section>
+
+        @if (Model.PatientHistory.Count > 0)
+        {
+            <section class="card">
+                <div class="card-head"><h3>مراجعه‌های دیگر این بیمار</h3><a class="btn btn-ghost btn-sm" href="/admin/patients/@a.PatientId">همه‌ی سوابق</a></div>
+                <ul class="timeline-list">
+                    @foreach (var h in Model.PatientHistory)
+                    {
+                        <li style="grid-template-columns:1fr auto">
+                            <a class="tl-who" href="/admin/appointments/@h.Id" style="color:inherit"><b>@Jalali.Short(h.Date)</b><span>@h.Doctor.FullName · @(h.Service?.Name ?? "—")</span></a>
+                            @if (h.Status == AppointmentStatus.Active) { <span class="stage-tag" style="--c:@h.Stage.Color">@h.Stage.Name</span> }
+                            else { <span class="pill pill-gray">لغو</span> }
+                        </li>
+                    }
+                </ul>
+            </section>
+        }
+
+        @if (Model.CanEdit && active)
+        {
+            <section class="card card-pad">
+                <h3 style="font-size:15px;margin-bottom:12px">لغو نوبت</h3>
+                <form asp-antiforgery="true" method="post" action="/admin/appointments/@a.Id/cancel" data-confirm="نوبت لغو شود؟ ساعت آن برای بقیه آزاد می‌شود.">
+                    <input class="input" name="note" placeholder="علت (اختیاری)" style="margin-bottom:10px" />
+                    <div style="display:flex;gap:8px;flex-wrap:wrap">
+                        <button class="btn btn-danger btn-sm" type="submit">@Ui.Icon("ban", "icon-sm")لغو نوبت</button>
+                        <button class="btn btn-ghost btn-sm" type="submit" name="noShow" value="true">@Ui.Icon("calendar-x", "icon-sm")بیمار نیامد</button>
+                    </div>
+                </form>
+            </section>
+        }
+    </div>
+</div>

@@ -1,0 +1,40 @@
+@model List<UserRow>
+<div class="page-head">
+    <div>
+        <h2>کاربران و دسترسی</h2>
+        <p>هر کاربر یک نقش دارد. منشی فقط پزشکانی را می‌بیند که به او سپرده شده‌اند.</p>
+    </div>
+    <div class="page-actions"><a class="btn btn-primary" href="/admin/users/new">@Ui.Icon("user-plus")کاربر جدید</a></div>
+</div>
+
+<section class="card">
+    <div class="table-wrap">
+        <table class="table">
+            <thead><tr><th>نام</th><th>نام کاربری</th><th>نقش</th><th>پزشکان</th><th>وضعیت</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var r in Model)
+            {
+                <tr>
+                    <td><div style="display:flex;align-items:center;gap:10px"><span class="avatar" style="width:34px;height:34px;font-size:14px;background:var(--orchid-100);color:var(--orchid)">@Ui.Initial(r.User.FullName)</span><b>@r.User.FullName</b></div></td>
+                    <td class="ltr muted">@r.User.UserName</td>
+                    <td><span class="pill @(r.Role is Roles.SuperAdmin or Roles.Admin ? "pill-orchid" : "pill-gray")">@Roles.Title(r.Role)</span></td>
+                    <td class="muted" style="font-size:13.5px">@(r.Doctors.Count > 0 ? string.Join("، ", r.Doctors) : "—")</td>
+                    <td>@if (r.User.IsActive) { <span class="pill pill-green pill-dot">فعال</span> } else { <span class="pill pill-gray pill-dot">غیرفعال</span> }</td>
+                    <td>
+                        @if (r.Role != Roles.SuperAdmin || User.IsInRole(Roles.SuperAdmin))
+                        {
+                            <div class="cell-actions"><a class="btn btn-ghost btn-sm" href="/admin/users/@r.User.Id/edit">@Ui.Icon("pencil", "icon-sm")ویرایش</a></div>
+                        }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="grid grid-3" style="margin-top:18px">
+    <div class="card card-pad"><b>مدیر ارشد و مدیر</b><p class="muted" style="font-size:13.5px;margin-top:4px">دسترسی کامل: پزشکان، کاربران، مراحل و همه‌ی نوبت‌ها. فقط مدیر ارشد می‌تواند مدیر ارشد دیگری بسازد.</p></div>
+    <div class="card card-pad"><b>منشی</b><p class="muted" style="font-size:13.5px;margin-top:4px">برنامه‌ی کاری و نوبت‌های پزشکان خودش، تایید تلفنی، ثبت نوبت تلفنی و جابه‌جایی مراحل.</p></div>
+    <div class="card card-pad"><b>مالی و کاربر عادی</b><p class="muted" style="font-size:13.5px;margin-top:4px">مالی همه‌ی نوبت‌ها را می‌بیند، مبلغ و پرداخت را ثبت می‌کند و مراحل را جابه‌جا می‌کند. کاربر عادی فقط مشاهده می‌کند.</p></div>
+</section>

@@ -1,0 +1,98 @@
+@model NewAppointmentForm
+@{
+    var doctors = (List<Doctor>)ViewBag.Doctors;
+    var dateField = new JDateField("Date", Model.Date);
+}
+<div class="page-head">
+    <div>
+        <h2>نوبت تلفنی یا حضوری</h2>
+        <p>برای بیمارانی که تلفنی یا حضوری نوبت می‌گیرند. این نوبت‌ها از اول «تایید شده» هستند.</p>
+    </div>
+    <div class="page-actions"><a class="btn btn-ghost" href="/admin/appointments">@Ui.Icon("arrow-right")بازگشت</a></div>
+</div>
+
+<form asp-antiforgery="true" method="post" action="/admin/appointments/new" id="new-appt" class="split">
+    <div class="card card-pad">
+        <div asp-validation-summary="All" class="alert alert-error"></div>
+        <div class="grid-form">
+            <div class="field">
+                <label for="n-doc">پزشک</label>
+                <select class="select" id="n-doc" name="DoctorId" required>
+                    <option value="">انتخاب کنید</option>
+                    @foreach (var d in doctors)
+                    {
+                        <option value="@d.Id" selected="@(d.Id == Model.DoctorId)" data-services="@string.Join(",", d.Services.Select(s => s.ServiceId))">@d.FullName</option>
+                    }
+                </select>
+            </div>
+            <div class="field">
+                <label for="n-svc">خدمت</label>
+                <select class="select" id="n-svc" name="ServiceId">
+                    <option value="">—</option>
+                    @foreach (var s in doctors.SelectMany(d => d.Services.Select(x => x.Service)).DistinctBy(s => s.Id).OrderBy(s => s.SortOrder))
+                    {
+                        <option value="@s.Id" selected="@(s.Id == Model.ServiceId)">@s.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="field">
+                <label for="n-name">نام بیمار</label>
+                <input class="input" id="n-name" name="PatientName" value="@Model.PatientName" required />
+            </div>
+            <div class="field">
+                <label for="n-mobile">موبایل</label>
+                <input class="input ltr-input" id="n-mobile" name="PatientMobile" value="@Model.PatientMobile" inputmode="tel" placeholder="09xxxxxxxxx" required />
+            </div>
+            <div class="field span-2">
+                <label for="n-notes">یادداشت</label>
+                <input class="input" id="n-notes" name="Notes" value="@Model.Notes" />
+            </div>
+        </div>
+    </div>
+    <div class="card card-pad">
+        <div class="field">
+            <span class="label">روز</span>
+            <partial name="_JDate" model="dateField" />
+        </div>
+        <span class="label">ساعت</span>
+        <input type="hidden" name="StartTime" id="n-time" value="@(Model.StartTime?.ToString("HH:mm"))" />
+        <div id="n-slots" class="chips-select" style="margin:8px 0 18px;min-height:40px"><span class="hint">اول پزشک و روز را انتخاب کنید.</span></div>
+        <button class="btn btn-primary btn-block" type="submit">@Ui.Icon("check")ثبت نوبت</button>
+    </div>
+</form>
+
+@section Scripts {
+<script>
+(function () {
+    const form = document.getElementById("new-appt");
+    const doc = form.querySelector("#n-doc"), svc = form.querySelector("#n-svc");
+    const date = form.querySelector("input[name=Date]"), time = form.querySelector("#n-time"), box = form.querySelector("#n-slots");
+
+    function filterServices() {
+        const allowed = (doc.selectedOptions[0]?.dataset.services || "").split(",").filter(Boolean);
+        for (const o of svc.options) if (o.value) o.hidden = allowed.length > 0 && !allowed.includes(o.value);
+        if (svc.selectedOptions[0]?.hidden) svc.value = "";
+    }
+    async function loadSlots() {
+        if (!doc.value || !date.value) return;
+        box.innerHTML = '<span class="hint">در حال دریافت ساعت‌ها…</span>';
+        const res = await fetch(`/admin/appointments/slots?doctorId=${doc.value}&date=${date.value}`);
+        const slots = res.ok ? await res.json() : [];
+        if (!slots.length) { box.innerHTML = '<span class="hint">این پزشک در این روز نوبت نمی‌دهد.</span>'; return; }
+        box.innerHTML = "";
+        for (const s of slots) {
+            const l = document.createElement("label");
+            l.innerHTML = `<input type="radio" name="_slot" value="${s.start}" ${s.free ? "" : "disabled"}><span style="${s.free ? "" : "opacity:.4;text-decoration:line-through"}">${s.start}</span>`;
+            const r = l.querySelector("input");
+            if (s.start === time.value && s.free) r.checked = true;
+            r.addEventListener("change", () => time.value = s.start);
+            box.appendChild(l);
+        }
+    }
+    doc.addEventListener("change", () => { filterServices(); time.value = ""; loadSlots(); });
+    date.addEventListener("change", () => { time.value = ""; loadSlots(); });
+    filterServices();
+    loadSlots();
+})();
+</script>
+}

@@ -1,0 +1,69 @@
+@model ClinicService
+@{
+    var list = (List<ClinicService>)ViewBag.List;
+    var editing = Model.Id != 0;
+}
+<div class="page-head">
+    <div>
+        <h2>خدمات و تخصص‌ها</h2>
+        <p>هر پزشک می‌تواند چند خدمت داشته باشد؛ بیمار هنگام رزرو یکی را انتخاب می‌کند.</p>
+    </div>
+</div>
+
+<div class="split">
+    <section class="card">
+        @if (list.Count == 0)
+        {
+            <div class="empty">@Ui.Icon("sparkles")<b>هنوز خدمتی ثبت نشده</b>مثلا بوتاکس، فیلر یا لیزر را از فرم کنار اضافه کنید.</div>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table class="table">
+                    <thead><tr><th>خدمت</th><th>پزشکان</th><th>وضعیت</th><th></th></tr></thead>
+                    <tbody>
+                    @foreach (var s in list)
+                    {
+                        <tr>
+                            <td><b>@s.Name</b>@if (!string.IsNullOrEmpty(s.Description)) {<div class="faint" style="font-size:13px">@s.Description</div>}</td>
+                            <td class="muted" style="font-size:13.5px">@(s.Doctors.Count == 0 ? "—" : string.Join("، ", s.Doctors.Select(d => d.Doctor.FullName)))</td>
+                            <td>@if (s.IsActive) { <span class="pill pill-green pill-dot">فعال</span> } else { <span class="pill pill-gray pill-dot">غیرفعال</span> }</td>
+                            <td>
+                                <div class="cell-actions">
+                                    <a class="btn btn-ghost btn-sm btn-icon" href="/admin/services?edit=@s.Id" title="ویرایش" aria-label="ویرایش @s.Name">@Ui.Icon("pencil", "icon-sm")</a>
+                                    <form asp-antiforgery="true" method="post" action="/admin/services/@s.Id/delete" data-confirm="«@s.Name» حذف شود؟">
+                                        <button class="btn btn-ghost btn-sm btn-icon range-del" title="حذف" aria-label="حذف @s.Name">@Ui.Icon("trash-2", "icon-sm")</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+
+    <form asp-antiforgery="true" class="card card-pad" method="post" action="/admin/services/save">
+        <h3 style="font-size:16px;margin-bottom:16px">@(editing ? "ویرایش خدمت" : "خدمت جدید")</h3>
+        <input type="hidden" asp-for="Id" />
+        <div class="field">
+            <label asp-for="Name">نام خدمت</label>
+            <input class="input" asp-for="Name" placeholder="مثلا بوتاکس" />
+            <span asp-validation-for="Name" class="field-error"></span>
+        </div>
+        <div class="field">
+            <label asp-for="Description">توضیح کوتاه</label>
+            <input class="input" asp-for="Description" placeholder="به بیمار نشان داده می‌شود" />
+        </div>
+        <div class="field">
+            <label asp-for="SortOrder">ترتیب نمایش</label>
+            <input class="input" asp-for="SortOrder" type="number" min="0" />
+        </div>
+        <label class="check" style="margin-bottom:18px"><input type="checkbox" asp-for="IsActive" />فعال است</label>
+        <div style="display:flex;gap:8px">
+            <button class="btn btn-primary" type="submit">@Ui.Icon("check")@(editing ? "ذخیره" : "افزودن")</button>
+            @if (editing) { <a class="btn btn-ghost" href="/admin/services">انصراف</a> }
+        </div>
+    </form>
+</div>

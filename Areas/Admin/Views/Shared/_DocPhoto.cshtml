@@ -1,0 +1,9 @@
+@model (string? Path, string Name, string? Id)
+@if (!string.IsNullOrEmpty(Model.Path))
+{
+    <img class="doc-photo" id="@Model.Id" src="@Model.Path" alt="عکس @Model.Name" loading="lazy" />
+}
+else
+{
+    <span class="doc-photo doc-photo-fallback" id="@Model.Id" aria-hidden="true">@Ui.Initial(Model.Name)</span>
+}

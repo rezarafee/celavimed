@@ -1,0 +1,52 @@
+@inject IConfiguration Config
+@{
+    var clinic = Config["Clinic:Name"] ?? "سلاوی‌مد";
+}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>ورود · @clinic</title>
+    <link rel="icon" href="/img/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="~/css/base.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/admin.css" asp-append-version="true" />
+</head>
+<body>
+<div class="auth">
+    <div class="auth-art" aria-hidden="true">
+        <span class="arch"></span>
+        <span class="arch two"></span>
+        <h2>هر بیمار، از رزرو تا خروج<br />در یک نگاه</h2>
+        <p>پنل پذیرش @clinic برای منشی‌ها، واحد مالی و پزشکان.</p>
+    </div>
+    <div class="auth-form">
+        <div style="display:flex;align-items:center;gap:12px">
+            <span class="brand-mark">س</span>
+            <span class="brand-name">@clinic<small>پنل پذیرش و نوبت‌دهی</small></span>
+        </div>
+        <h1>ورود به پنل</h1>
+        <p class="muted" style="margin-bottom:24px">نام کاربری و رمزی که مدیر به شما داده را وارد کنید.</p>
+        @if (ViewBag.Error is string err)
+        {
+            <div class="alert alert-error">@Ui.Icon("ban", "icon-sm")@err</div>
+        }
+        <form asp-antiforgery="true" method="post" action="/account/login">
+            <input type="hidden" name="returnUrl" value="@ViewBag.ReturnUrl" />
+            <div class="field">
+                <label for="u">نام کاربری</label>
+                <input class="input ltr-input" id="u" name="userName" value="@ViewBag.UserName" autocomplete="username" autofocus required />
+            </div>
+            <div class="field">
+                <label for="p">رمز عبور</label>
+                <input class="input ltr-input" id="p" type="password" name="password" autocomplete="current-password" required />
+            </div>
+            <label class="check" style="margin-bottom:22px"><input type="checkbox" name="remember" value="true" />مرا به خاطر بسپار</label>
+            <button class="btn btn-dark btn-block" type="submit" style="min-height:48px">ورود</button>
+        </form>
+        <a href="/" style="margin-top:28px;font-size:14px;display:inline-flex;gap:6px;align-items:center">@Ui.Icon("arrow-right", "icon-sm")صفحه‌ی رزرو آنلاین</a>
+    </div>
+</div>
+</body>
+</html>

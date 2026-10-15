@@ -1,0 +1,112 @@
+@model DashboardVm
+@{
+    var max = Math.Max(1, Model.StageCounts.Select(x => x.Count).DefaultIfEmpty(0).Max());
+    var name = User.FindFirst("FullName")?.Value ?? "";
+}
+<div class="page-head">
+    <div>
+        <h2>سلام @name</h2>
+        <p>خلاصه‌ی امروز مرکز، از رزرو آنلاین تا خروج بیمار.</p>
+    </div>
+    <div class="page-actions">
+        <a class="btn btn-outline" href="/admin/appointments/new">@Ui.Icon("calendar-plus")نوبت تلفنی</a>
+        <a class="btn btn-primary" href="/admin/board">@Ui.Icon("square-kanban")مراحل امروز</a>
+    </div>
+</div>
+
+<section class="stats">
+    <div class="card stat stat-hero">
+        <div class="stat-label">@Ui.Icon("calendar-check", "icon-sm")بیماران امروز</div>
+        <div class="stat-value">@Model.TodayTotal</div>
+        <div class="stat-sub">@Model.TodayDone نفر کارشان تمام شده</div>
+    </div>
+    <a class="card stat" href="/admin/appointments?view=pending" style="color:inherit">
+        <div class="stat-label">@Ui.Icon("phone-call", "icon-sm")منتظر تماس منشی</div>
+        <div class="stat-value" style="color:var(--orchid)">@Model.PendingConfirm</div>
+        <div class="stat-sub">رزرو آنلاین تایید‌نشده</div>
+    </a>
+    <div class="card stat">
+        <div class="stat-label">@Ui.Icon("calendar-days", "icon-sm")هفت روز آینده</div>
+        <div class="stat-value">@Model.UpcomingWeek</div>
+        <div class="stat-sub">نوبت ثبت‌شده</div>
+    </div>
+    <div class="card stat">
+        <div class="stat-label">@Ui.Icon("sparkles", "icon-sm")رزرو در ۲۴ ساعت گذشته</div>
+        <div class="stat-value">@Model.NewOnline24h</div>
+        <div class="stat-sub">آنلاین و تلفنی</div>
+    </div>
+</section>
+
+<div class="grid" style="grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);" id="dash-grid">
+    <section class="card">
+        <div class="card-head">
+            <h3>نوبت‌های امروز</h3>
+            <a class="btn btn-ghost btn-sm" href="/admin/board">مشاهده‌ی مراحل @Ui.Icon("chevron-left", "icon-sm")</a>
+        </div>
+        @if (Model.Today.Count == 0)
+        {
+            <div class="empty">@Ui.Icon("calendar-x")<b>امروز نوبتی ثبت نشده</b>رزروهای آنلاین اینجا ظاهر می‌شوند.</div>
+        }
+        else
+        {
+            <ul class="timeline-list">
+                @foreach (var a in Model.Today)
+                {
+                    <li>
+                        <span class="tl-time">@Jalali.Time(a.StartTime)</span>
+                        <a class="tl-who" href="/admin/appointments/@a.Id" style="color:inherit">
+                            <b>@a.Patient.FullName</b>
+                            <span>@a.Doctor.FullName@(a.Service != null ? " · " + a.Service.Name : "")</span>
+                        </a>
+                        <span class="stage-tag" style="--c:@a.Stage.Color">@a.Stage.Name</span>
+                    </li>
+                }
+            </ul>
+        }
+    </section>
+
+    <div class="grid" style="align-content:start">
+        <section class="card card-pad">
+            <h3 style="font-size:16px;margin-bottom:16px">امروز در هر مرحله</h3>
+            <div class="stage-bars">
+                @foreach (var (stage, count) in Model.StageCounts)
+                {
+                    <div class="stage-bar">
+                        <span>@stage.Name</span>
+                        <span class="stage-bar-track"><span class="stage-bar-fill" style="width:@(count * 100 / max)%;background:@stage.Color"></span></span>
+                        <b>@count</b>
+                    </div>
+                }
+            </div>
+        </section>
+
+        <section class="card">
+            <div class="card-head">
+                <h3>منتظر تایید تلفنی</h3>
+                <a class="btn btn-ghost btn-sm" href="/admin/appointments?view=pending">همه</a>
+            </div>
+            @if (Model.ToConfirm.Count == 0)
+            {
+                <div class="empty" style="padding:28px">@Ui.Icon("circle-check")همه‌ی رزروها تایید شده‌اند.</div>
+            }
+            else
+            {
+                <ul class="timeline-list">
+                    @foreach (var a in Model.ToConfirm)
+                    {
+                        <li style="grid-template-columns: 1fr auto">
+                            <a class="tl-who" href="/admin/appointments/@a.Id" style="color:inherit">
+                                <b>@a.Patient.FullName</b>
+                                <span>@Jalali.DayMonth(a.Date) · ساعت @Jalali.Time(a.StartTime) · @a.Doctor.FullName</span>
+                            </a>
+                            <a class="btn btn-outline btn-sm btn-icon" href="tel:@a.Patient.Mobile" title="تماس" aria-label="تماس با @a.Patient.FullName">@Ui.Icon("phone", "icon-sm")</a>
+                        </li>
+                    }
+                </ul>
+            }
+        </section>
+    </div>
+</div>
+<style>
+    @@media (max-width: 1100px) { #dash-grid { grid-template-columns: 1fr !important; } }
+</style>

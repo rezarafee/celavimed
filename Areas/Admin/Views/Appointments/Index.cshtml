@@ -1,0 +1,125 @@
+@model AppointmentListVm
+@{
+    var f = Model.Filter;
+    var back = Context.Request.Path + Context.Request.QueryString;
+    var dateField = new JDateField("Date", f.Date, "همه‌ی روزها", AllowEmpty: true, SubmitOnChange: true);
+    var tabs = new[] { ("upcoming", "پیش رو"), ("pending", "منتظر تایید"), ("all", "همه"), ("cancelled", "لغو / نیامده") };
+    var canAct = User.IsInRole(Roles.SuperAdmin) || User.IsInRole(Roles.Admin) || User.IsInRole(Roles.Secretary) || User.IsInRole(Roles.Finance);
+    string Url(string view) => $"/admin/appointments?view={view}";
+}
+<div class="page-head">
+    <div>
+        <h2>رزروها و تایید تلفنی</h2>
+        <p>با بیمار تماس بگیرید و با «تایید» او را به مرحله‌ی بعد ببرید.</p>
+    </div>
+    @if (User.IsInRole(Roles.Secretary) || User.IsInRole(Roles.Admin) || User.IsInRole(Roles.SuperAdmin))
+    {
+        <div class="page-actions"><a class="btn btn-primary" href="/admin/appointments/new">@Ui.Icon("calendar-plus")نوبت تلفنی / حضوری</a></div>
+    }
+</div>
+
+<nav class="chips-select" style="margin-bottom:16px" aria-label="نوع فهرست">
+    @foreach (var (key, label) in tabs)
+    {
+        <a href="@Url(key)" style="text-decoration:none"><span style="@(f.View == key ? "background:var(--plum-900);color:#fff;border-color:var(--plum-900);font-weight:600" : "")">@label</span></a>
+    }
+</nav>
+
+<section class="card">
+    <form class="filters" method="get" action="/admin/appointments">
+        <input type="hidden" name="view" value="@f.View" />
+        <div class="field" style="min-width:210px">
+            <span class="label">روز</span>
+            <partial name="_JDate" model="dateField" />
+        </div>
+        <div class="field">
+            <label class="label" for="f-doc">پزشک</label>
+            <select class="select" id="f-doc" name="DoctorId" onchange="this.form.submit()">
+                <option value="">همه‌ی پزشکان</option>
+                @foreach (var d in Model.Doctors) { <option value="@d.Id" selected="@(f.DoctorId == d.Id)">@d.FullName</option> }
+            </select>
+        </div>
+        <div class="field">
+            <label class="label" for="f-stage">مرحله</label>
+            <select class="select" id="f-stage" name="StageId" onchange="this.form.submit()">
+                <option value="">همه‌ی مراحل</option>
+                @foreach (var s in Model.Stages) { <option value="@s.Id" selected="@(f.StageId == s.Id)">@s.Name</option> }
+            </select>
+        </div>
+        <div class="field" style="flex:1;min-width:200px">
+            <label class="label" for="f-q">جستجو</label>
+            <input class="input" id="f-q" name="Q" value="@f.Q" placeholder="نام، موبایل یا کد پیگیری" />
+        </div>
+        <button class="btn btn-outline" type="submit" aria-label="جستجو">@Ui.Icon("search")</button>
+    </form>
+
+    @if (Model.Items.Count == 0)
+    {
+        <div class="empty">@Ui.Icon("calendar-x")<b>نوبتی با این مشخصات پیدا نشد</b>فیلترها را تغییر دهید یا تب «همه» را ببینید.</div>
+    }
+    else
+    {
+        <div class="table-wrap table-appts">
+            <table class="table">
+                <thead><tr><th>زمان</th><th>بیمار</th><th>پزشک و خدمت</th><th>وضعیت</th><th></th></tr></thead>
+                <tbody>
+                @foreach (var a in Model.Items)
+                {
+                    <tr>
+                        <td><b>@Jalali.Time(a.StartTime)</b><div class="faint" style="font-size:13px">@Jalali.Long(a.Date)</div></td>
+                        <td class="appt-row-name"><a href="/admin/patients/@a.PatientId" style="color:inherit"><b>@a.Patient.FullName</b></a><span class="ltr">@Ui.Mobile(a.Patient.Mobile)</span></td>
+                        <td class="appt-row-name"><b style="font-weight:500">@a.Doctor.FullName</b><span>@(a.Service?.Name ?? "—")</span></td>
+                        <td>
+                            @if (a.Status == AppointmentStatus.Cancelled) { <span class="pill pill-red">لغو شده</span> }
+                            else if (a.Status == AppointmentStatus.NoShow) { <span class="pill pill-amber">نیامد</span> }
+                            else { <span class="stage-tag" style="--c:@a.Stage.Color">@a.Stage.Name</span> }
+                        </td>
+                        <td>
+                            <div class="cell-actions">
+                                <a class="btn btn-outline btn-sm btn-icon" href="tel:@a.Patient.Mobile" title="تماس" aria-label="تماس با @a.Patient.FullName">@Ui.Icon("phone", "icon-sm")</a>
+                                @if (canAct && a.Status == AppointmentStatus.Active && a.StageId == Model.InitialStageId && Model.ConfirmStageId != null)
+                                {
+                                    <form asp-antiforgery="true" method="post" action="/admin/appointments/@a.Id/confirm">
+                                        <input type="hidden" name="back" value="@back" />
+                                        <button class="btn btn-success btn-sm">@Ui.Icon("check", "icon-sm")تایید</button>
+                                    </form>
+                                }
+                                <a class="btn btn-ghost btn-sm" href="/admin/appointments/@a.Id">پرونده</a>
+                            </div>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="appt-cards">
+            @foreach (var a in Model.Items)
+            {
+                <article class="appt-card">
+                    <div class="appt-card-top">
+                        <span><b style="font-size:16px">@Jalali.Time(a.StartTime)</b> <span class="faint" style="font-size:13px">@Jalali.DayMonth(a.Date)</span></span>
+                        @if (a.Status == AppointmentStatus.Active) { <span class="stage-tag" style="--c:@a.Stage.Color">@a.Stage.Name</span> }
+                        else { <span class="pill pill-red">@(a.Status == AppointmentStatus.NoShow ? "نیامد" : "لغو شده")</span> }
+                    </div>
+                    <a href="/admin/appointments/@a.Id" style="color:inherit"><b>@a.Patient.FullName</b></a>
+                    <span class="muted" style="font-size:13.5px">@a.Doctor.FullName · @(a.Service?.Name ?? "بدون خدمت")</span>
+                    <div style="display:flex;gap:8px">
+                        <a class="btn btn-outline btn-sm" style="flex:1" href="tel:@a.Patient.Mobile">@Ui.Icon("phone", "icon-sm")<span class="ltr">@Ui.Mobile(a.Patient.Mobile)</span></a>
+                        @if (canAct && a.Status == AppointmentStatus.Active && a.StageId == Model.InitialStageId && Model.ConfirmStageId != null)
+                        {
+                            <form asp-antiforgery="true" method="post" action="/admin/appointments/@a.Id/confirm" style="flex:1;display:flex">
+                                <input type="hidden" name="back" value="@back" />
+                                <button class="btn btn-success btn-sm" style="flex:1">@Ui.Icon("check", "icon-sm")تایید</button>
+                            </form>
+                        }
+                    </div>
+                </article>
+            }
+        </div>
+        @if (Model.Total > Model.Items.Count)
+        {
+            <p class="faint" style="padding:12px 22px;font-size:13px">@Model.Items.Count مورد از @Model.Total نمایش داده شد؛ برای دیدن بقیه فیلتر کنید.</p>
+        }
+    }
+</section>

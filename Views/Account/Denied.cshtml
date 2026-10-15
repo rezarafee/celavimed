@@ -1,0 +1,10 @@
+@{
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "دسترسی ندارید";
+}
+<div class="card empty">
+    @Ui.Icon("shield-check")
+    <b>این بخش برای نقش شما باز نیست</b>
+    اگر به آن نیاز دارید، از مدیر بخواهید نقش یا پزشکان شما را تغییر دهد.
+    <div style="margin-top:16px"><a class="btn btn-outline" href="/admin">بازگشت به داشبورد</a></div>
+</div>

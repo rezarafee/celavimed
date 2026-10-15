@@ -1,0 +1,108 @@
+@using Microsoft.AspNetCore.Antiforgery
+@using Microsoft.EntityFrameworkCore
+@inject IAntiforgery Antiforgery
+@inject AccessScope Scope
+@inject WorkflowService Flow
+@inject IConfiguration Config
+@{
+    var nav = ViewData["Nav"] as string ?? "";
+    var title = ViewData["Title"] as string ?? "پنل مدیریت";
+    var clinic = Config["Clinic:Name"] ?? "سلاوی‌مد";
+    var csrf = Antiforgery.GetAndStoreTokens(Context).RequestToken;
+    var fullName = User.FindFirst("FullName")?.Value ?? User.Identity?.Name ?? "";
+    var roleTitle = Roles.All.Where(r => User.IsInRole(r)).Select(Roles.Title).FirstOrDefault() ?? "";
+    var isManager = Scope.IsManager;
+    var isFrontDesk = Scope.CanManageSchedules;
+    var initial = await Flow.InitialStageAsync();
+    var pending = await (await Scope.AppointmentsAsync())
+        .CountAsync(a => a.Status == AppointmentStatus.Active && a.StageId == initial.Id && a.Date >= Clock.Today);
+    string Active(string key) => nav == key ? "nav-link active" : "nav-link";
+}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="csrf" content="@csrf" />
+    <meta name="theme-color" content="#24122A" />
+    <title>@title · @clinic</title>
+    <link rel="icon" href="/img/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="~/css/base.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/admin.css" asp-append-version="true" />
+</head>
+<body>
+<div class="app">
+    <aside class="side" aria-label="منوی اصلی">
+        <div class="side-brand">
+            <span class="brand-mark">س</span>
+            <span class="brand-name">@clinic<small>پنل پذیرش و نوبت‌دهی</small></span>
+        </div>
+        <nav class="side-nav">
+            <a class="@Active("dashboard")" href="/admin">@Ui.Icon("layout-dashboard")<span>داشبورد</span></a>
+
+            <div class="nav-group">
+                <div class="nav-group-title">پذیرش بیمار</div>
+                <a class="@Active("board")" href="/admin/board">@Ui.Icon("square-kanban")<span>مراحل بیماران</span></a>
+                <a class="@Active("appointments")" href="/admin/appointments">@Ui.Icon("calendar-check")<span>رزروها و تایید</span>@if (pending > 0) {<b class="nav-badge">@pending</b>}</a>
+                @if (isFrontDesk || User.IsInRole(Roles.Finance))
+                {
+                    <a class="@Active("patients")" href="/admin/patients">@Ui.Icon("users")<span>بیماران</span></a>
+                }
+            </div>
+
+            @if (isFrontDesk)
+            {
+                <div class="nav-group">
+                    <div class="nav-group-title">پزشکان و خدمات</div>
+                    <a class="@Active("doctors")" href="/admin/doctors">@Ui.Icon("stethoscope")<span>پزشکان</span></a>
+                    <a class="@Active("schedules")" href="/admin/schedules">@Ui.Icon("calendar-days")<span>برنامه‌ی کاری</span></a>
+                    <a class="@Active("services")" href="/admin/services">@Ui.Icon("sparkles")<span>خدمات و تخصص‌ها</span></a>
+                </div>
+            }
+
+            @if (isManager)
+            {
+                <div class="nav-group">
+                    <div class="nav-group-title">تنظیمات</div>
+                    <a class="@Active("stages")" href="/admin/stages">@Ui.Icon("layers")<span>مراحل پذیرش</span></a>
+                    <a class="@Active("users")" href="/admin/users">@Ui.Icon("user-cog")<span>کاربران و دسترسی</span></a>
+                </div>
+            }
+
+            <div class="nav-group">
+                <a class="nav-link" href="/" target="_blank" rel="noopener">@Ui.Icon("eye")<span>صفحه‌ی رزرو آنلاین</span></a>
+                <a class="@Active("password")" href="/account/password">@Ui.Icon("key-round")<span>تغییر رمز عبور</span></a>
+            </div>
+        </nav>
+        <div class="side-foot">
+            <div class="side-user">
+                <span class="avatar">@Ui.Initial(fullName)</span>
+                <span class="side-user-meta"><b>@fullName</b><span>@roleTitle</span></span>
+                <form asp-antiforgery="true" method="post" action="/account/logout">
+                    <button class="btn btn-ghost btn-sm btn-icon" title="خروج" aria-label="خروج">@Ui.Icon("log-out")</button>
+                </form>
+            </div>
+        </div>
+    </aside>
+    <div class="overlay"></div>
+
+    <div class="main">
+        <header class="topbar">
+            <button class="btn btn-ghost btn-icon side-toggle" type="button" data-side-toggle aria-label="باز و بسته کردن منو">@Ui.Icon("panel-right-close")</button>
+            <h1>@title</h1>
+            <div class="topbar-date">@Ui.Icon("calendar-days", "icon-sm")<span>امروز</span> @Jalali.Long(Clock.Today)</div>
+        </header>
+        <main class="content">
+            @if (TempData["Flash"] is string flash)
+            {
+                <div data-flash="@flash" data-flash-error="@(TempData["FlashError"] is not null ? "1" : "0")" hidden></div>
+            }
+            @RenderBody()
+        </main>
+    </div>
+</div>
+<script src="~/js/jalali.js" asp-append-version="true"></script>
+<script src="~/js/admin.js" asp-append-version="true"></script>
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

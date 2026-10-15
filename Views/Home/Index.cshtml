@@ -1,0 +1,129 @@
+@inject IConfiguration Config
+@{
+    ViewData["Title"] = "رزرو آنلاین نوبت";
+    var clinic = Config["Clinic:Name"] ?? "سلاوی‌مد";
+}
+<section class="hero">
+    <div class="wrap">
+        <p class="hero-kicker">رزرو آنلاین @clinic</p>
+        <h1>روز و ساعت مراجعه را خودتان انتخاب کنید</h1>
+        <p>پزشک را انتخاب کنید، ساعت‌های آزاد را در تقویم ببینید و نوبت بگیرید. منشی مرکز برای هماهنگی نهایی با شما تماس می‌گیرد.</p>
+    </div>
+</section>
+
+<section class="booking">
+    <div class="wrap">
+        <div class="panel" id="booking" data-doctors="@ViewBag.DoctorsJson">
+            <ol class="steps" aria-label="مراحل رزرو">
+                <li data-step="1" class="is-active"><span class="num">۱</span><span>پزشک<span class="step-val" data-val="doctor"></span></span></li>
+                <li data-step="2"><span class="num">۲</span><span>روز و ساعت<span class="step-val" data-val="time"></span></span></li>
+                <li data-step="3"><span class="num">۳</span><span>مشخصات شما</span></li>
+            </ol>
+
+            <!-- ۱. انتخاب پزشک -->
+            <div class="stage" data-stage="1">
+                <div class="stage-title">
+                    <div>
+                        <h2>نزد کدام پزشک می‌خواهید بیایید؟</h2>
+                        <p>روی پزشک بزنید تا روزهای کاری‌اش را ببینید.</p>
+                    </div>
+                </div>
+                @if ((int)ViewBag.DoctorCount == 0)
+                {
+                    <div class="slots-empty">@Ui.Icon("calendar-x")رزرو آنلاین فعلا فعال نیست. لطفا تلفنی تماس بگیرید.</div>
+                }
+                <div class="doctors" id="doctor-list"></div>
+            </div>
+
+            <!-- ۲. روز و ساعت -->
+            <div class="stage" data-stage="2" hidden>
+                <div class="stage-title">
+                    <div>
+                        <h2>یک روز را انتخاب کنید</h2>
+                        <p>روزهای صورتی، ساعت آزاد دارند.</p>
+                    </div>
+                </div>
+                <div class="picker">
+                    <div class="jcal" id="cal">
+                        <div class="jcal-head">
+                            <button type="button" class="btn btn-ghost btn-icon" data-cal="prev" aria-label="ماه قبل">@Ui.Icon("chevron-right")</button>
+                            <span class="jcal-title" aria-live="polite"></span>
+                            <button type="button" class="btn btn-ghost btn-icon" data-cal="next" aria-label="ماه بعد">@Ui.Icon("chevron-left")</button>
+                        </div>
+                        <div class="jcal-grid"></div>
+                        <div class="legend">
+                            <span><i style="background:var(--quartz-200)"></i>نوبت آزاد دارد</span>
+                            <span><i style="background:repeating-linear-gradient(-45deg,#F3EFF4,#F3EFF4 3px,#E4DDE7 3px,#E4DDE7 6px)"></i>تکمیل</span>
+                            <span><i style="background:var(--plum-900)"></i>انتخاب شما</span>
+                        </div>
+                    </div>
+                    <div id="slots" aria-live="polite">
+                        <div class="slots-empty">@Ui.Icon("calendar-days")یک روز صورتی را از تقویم انتخاب کنید تا ساعت‌های آزادش را ببینید.</div>
+                    </div>
+                </div>
+                <div class="actions">
+                    <button type="button" class="btn btn-ghost" data-go="1">@Ui.Icon("arrow-right", "icon-sm")تغییر پزشک</button>
+                    <button type="button" class="btn btn-dark btn-lg" data-go="3" disabled id="to-details"><span>ادامه</span>@Ui.Icon("arrow-left", "icon-sm")</button>
+                </div>
+            </div>
+
+            <!-- ۳. مشخصات -->
+            <div class="stage" data-stage="3" hidden>
+                <div class="details">
+                    <form id="book-form" novalidate>
+                        <div class="stage-title"><div><h2>مشخصات شما</h2><p>شماره را درست وارد کنید؛ منشی با همین شماره تماس می‌گیرد.</p></div></div>
+                        <div class="field">
+                            <label for="b-name">نام و نام خانوادگی</label>
+                            <input class="input" id="b-name" name="name" autocomplete="name" required maxlength="120" />
+                        </div>
+                        <div class="field">
+                            <label for="b-mobile">شماره موبایل</label>
+                            <input class="input ltr-input" id="b-mobile" name="mobile" inputmode="tel" autocomplete="tel" placeholder="09xxxxxxxxx" required maxlength="14" />
+                        </div>
+                        <div class="field" id="svc-field">
+                            <span class="label">برای چه خدمتی می‌آیید؟</span>
+                            <div class="svc-list" id="svc-list"></div>
+                        </div>
+                        <div class="hp" aria-hidden="true"><label>وبسایت<input name="website" tabindex="-1" autocomplete="off" /></label></div>
+                        <div class="alert alert-error form-error" id="form-error" hidden></div>
+                        <div class="actions">
+                            <button type="button" class="btn btn-ghost" data-go="2">@Ui.Icon("arrow-right", "icon-sm")تغییر ساعت</button>
+                            <button type="submit" class="btn btn-dark btn-lg" id="submit-btn">ثبت نوبت</button>
+                        </div>
+                    </form>
+                    <aside class="summary" aria-label="خلاصه‌ی نوبت">
+                        <h3>نوبت شما</h3>
+                        <dl>
+                            <div><dt>پزشک</dt><dd class="big" data-sum="doctor"></dd></div>
+                            <div><dt>روز</dt><dd data-sum="date"></dd></div>
+                            <div><dt>ساعت</dt><dd data-sum="time"></dd></div>
+                        </dl>
+                    </aside>
+                </div>
+            </div>
+
+            <!-- پایان -->
+            <div class="stage done" data-stage="4" hidden>
+                <div class="done-arch">@Ui.Icon("calendar-check")</div>
+                <h2>نوبت شما ثبت شد</h2>
+                <p>منشی مرکز به‌زودی برای تایید نهایی با شما تماس می‌گیرد. کد پیگیری را نگه دارید.</p>
+                <div class="ticket-box"><small>کد پیگیری</small><b id="done-code"></b></div>
+                <p class="done-meta" id="done-meta"></p>
+                <div style="margin-top:28px"><button type="button" class="btn btn-outline" id="again">رزرو نوبت دیگر</button></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="how">
+    <div class="wrap how-grid">
+        <div><h3>@Ui.Icon("calendar-days")ساعت آزاد را ببینید</h3><p>تقویم فقط ساعت‌هایی را نشان می‌دهد که پزشک واقعا در مرکز است و کسی رزروشان نکرده.</p></div>
+        <div><h3>@Ui.Icon("phone-call")تماس منشی</h3><p>بعد از ثبت، منشی تماس می‌گیرد تا ساعت را قطعی کند و اگر لازم است توضیح بدهد.</p></div>
+        <div><h3>@Ui.Icon("sparkles")روز مراجعه</h3><p>کمی زودتر از ساعت نوبت در پذیرش باشید و کد پیگیری را بگویید.</p></div>
+    </div>
+</section>
+
+@section Scripts {
+    <script src="~/js/jalali.js" asp-append-version="true"></script>
+    <script src="~/js/booking.js" asp-append-version="true"></script>
+}

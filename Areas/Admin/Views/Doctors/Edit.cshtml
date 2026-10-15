@@ -1,0 +1,106 @@
+@model DoctorForm
+@{ (string?, string, string?) photoModel = (Model.PhotoPath, Model.FullName, "photo-preview"); }
+<div class="page-head">
+    <div>
+        <h2>@(Model.Id == 0 ? "پزشک جدید" : Model.FullName)</h2>
+        <p>این اطلاعات در صفحه‌ی رزرو آنلاین به بیماران نشان داده می‌شود.</p>
+    </div>
+    <div class="page-actions"><a class="btn btn-ghost" href="/admin/doctors">@Ui.Icon("arrow-right")بازگشت</a></div>
+</div>
+
+<form asp-antiforgery="true" method="post" action="/admin/doctors/save" enctype="multipart/form-data">
+    <input type="hidden" asp-for="Id" />
+    <div asp-validation-summary="ModelOnly" class="alert alert-error"></div>
+    <div class="split">
+        <div class="card card-pad">
+            <div class="grid-form">
+                <div class="field span-2">
+                    <label asp-for="FullName">نام و نام خانوادگی</label>
+                    <input class="input" asp-for="FullName" placeholder="مثلا دکتر سارا مقدم" />
+                    <span asp-validation-for="FullName" class="field-error"></span>
+                </div>
+                <div class="field span-2">
+                    <label asp-for="Headline">عنوان تخصص</label>
+                    <input class="input" asp-for="Headline" placeholder="مثلا متخصص پوست، مو و زیبایی" />
+                </div>
+                <div class="field">
+                    <label asp-for="MedicalCode">شماره نظام پزشکی</label>
+                    <input class="input" asp-for="MedicalCode" inputmode="numeric" />
+                </div>
+                <div class="field">
+                    <label asp-for="Phone">تلفن (داخلی)</label>
+                    <input class="input ltr-input" asp-for="Phone" inputmode="tel" />
+                    <span class="hint">به بیماران نشان داده نمی‌شود.</span>
+                </div>
+                <div class="field span-2">
+                    <label asp-for="Bio">درباره‌ی پزشک</label>
+                    <textarea class="textarea" asp-for="Bio" rows="4" placeholder="سابقه، روش‌های تخصصی و ..."></textarea>
+                </div>
+                <div class="field span-2">
+                    <span class="label">خدمات و تخصص‌ها</span>
+                    @if (Model.AllServices.Count == 0)
+                    {
+                        <p class="hint">هنوز خدمتی تعریف نشده. از بخش <a href="/admin/services">خدمات و تخصص‌ها</a> اضافه کنید.</p>
+                    }
+                    <div class="chips-select">
+                        @foreach (var s in Model.AllServices)
+                        {
+                            <label><input type="checkbox" name="ServiceIds" value="@s.Id" @(Model.ServiceIds.Contains(s.Id) ? "checked" : "") /><span>@s.Name</span></label>
+                        }
+                    </div>
+                    <span class="hint">بیمار هنگام رزرو از بین همین خدمات انتخاب می‌کند.</span>
+                </div>
+                <div class="field span-2">
+                    <span class="label">منشی‌های این پزشک</span>
+                    @if (Model.AllSecretaries.Count == 0)
+                    {
+                        <p class="hint">کاربری با نقش منشی وجود ندارد. از <a href="/admin/users">کاربران و دسترسی</a> بسازید.</p>
+                    }
+                    <div class="chips-select">
+                        @foreach (var u in Model.AllSecretaries)
+                        {
+                            <label><input type="checkbox" name="SecretaryIds" value="@u.Id" @(Model.SecretaryIds.Contains(u.Id) ? "checked" : "") /><span>@u.FullName</span></label>
+                        }
+                    </div>
+                    <span class="hint">منشی فقط برنامه و نوبت‌های پزشکان خودش را می‌بیند.</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="card card-pad">
+                <span class="label" style="display:block;margin-bottom:12px">عکس پزشک</span>
+                <div class="photo-edit">
+                    <partial name="_DocPhoto" model="photoModel" />
+                    <div style="display:grid;gap:8px">
+                        <label class="btn btn-outline btn-sm" style="cursor:pointer">
+                            @Ui.Icon("image-plus", "icon-sm")انتخاب عکس
+                            <input type="file" name="Photo" accept="image/jpeg,image/png,image/webp" data-photo-input="#photo-preview" class="sr-only" />
+                        </label>
+                        @if (Model.PhotoPath != null)
+                        {
+                            <label class="check" style="font-size:13.5px"><input type="checkbox" name="RemovePhoto" value="true" />حذف عکس</label>
+                        }
+                        <span class="hint">عکس عمودی، حداکثر ۴ مگابایت</span>
+                    </div>
+                </div>
+                <span asp-validation-for="Photo" class="field-error"></span>
+            </div>
+            <div class="card card-pad">
+                <div class="field">
+                    <label asp-for="SortOrder">ترتیب نمایش</label>
+                    <input class="input" asp-for="SortOrder" type="number" min="0" />
+                </div>
+                <label class="check"><input type="checkbox" asp-for="IsActive" />در صفحه‌ی رزرو نمایش داده شود</label>
+            </div>
+            <button class="btn btn-primary btn-block" type="submit">@Ui.Icon("check")ذخیره‌ی پزشک</button>
+        </div>
+    </div>
+</form>
+
+@if (Model.Id != 0)
+{
+    <form asp-antiforgery="true" method="post" action="/admin/doctors/@Model.Id/delete" data-confirm="این پزشک حذف شود؟ اگر نوبت داشته باشد فقط غیرفعال می‌شود." style="margin-top:18px">
+        <button class="btn btn-danger btn-sm" type="submit">@Ui.Icon("trash-2", "icon-sm")حذف پزشک</button>
+    </form>
+}

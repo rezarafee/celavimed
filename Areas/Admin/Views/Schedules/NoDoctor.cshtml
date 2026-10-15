@@ -1,0 +1,12 @@
+<div class="card empty">
+    @Ui.Icon("stethoscope")
+    <b>پزشکی برای تنظیم برنامه نیست</b>
+    @if (User.IsInRole(Roles.Secretary) && !User.IsInRole(Roles.Admin) && !User.IsInRole(Roles.SuperAdmin))
+    {
+        <span>هنوز پزشکی به شما سپرده نشده. از مدیر بخواهید شما را به عنوان منشی پزشک انتخاب کند.</span>
+    }
+    else
+    {
+        <span>اول یک پزشک اضافه کنید. <a href="/admin/doctors/new">افزودن پزشک</a></span>
+    }
+</div>

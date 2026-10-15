@@ -1,0 +1,10 @@
+bin/
+obj/
+publish/
+*.db
+*.db-shm
+*.db-wal
+.vs/
+*.user
+wwwroot/uploads/doctors/*
+!wwwroot/uploads/doctors/.gitkeep

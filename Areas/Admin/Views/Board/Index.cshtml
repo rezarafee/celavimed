@@ -1,0 +1,76 @@
+@model BoardVm
+@{
+    var iso = Model.Date.ToString("yyyy-MM-dd");
+    var docQ = Model.DoctorId.HasValue ? $"&doctorId={Model.DoctorId}" : "";
+    var prev = Model.Date.AddDays(-1).ToString("yyyy-MM-dd");
+    var next = Model.Date.AddDays(1).ToString("yyyy-MM-dd");
+    var isToday = Model.Date == Clock.Today;
+}
+<div class="page-head">
+    <div>
+        <h2>مراحل بیماران</h2>
+        <p>هر کارت یک بیمار است. کارت را بکشید و در مرحله‌ی بعد رها کنید، یا از دکمه‌ها استفاده کنید.</p>
+    </div>
+</div>
+
+<div class="board-tools">
+    <div class="day-nav">
+        <a href="/admin/board?date=@(prev)@(docQ)" aria-label="روز قبل">@Ui.Icon("chevron-right")</a>
+        <span class="day-label">@Jalali.Long(Model.Date)@(isToday ? " (امروز)" : "")</span>
+        <a href="/admin/board?date=@(next)@(docQ)" aria-label="روز بعد">@Ui.Icon("chevron-left")</a>
+    </div>
+    @if (!isToday)
+    {
+        <a class="btn btn-outline" href="/admin/board@(Model.DoctorId.HasValue ? "?doctorId=" + Model.DoctorId : "")">امروز</a>
+    }
+    <form method="get" action="/admin/board" style="display:flex;gap:10px;flex-wrap:wrap">
+        <input type="hidden" name="date" value="@iso" />
+        <select class="select" name="doctorId" onchange="this.form.submit()" style="min-width:200px" aria-label="پزشک">
+            <option value="">همه‌ی پزشکان</option>
+            @foreach (var d in Model.Doctors) { <option value="@d.Id" selected="@(d.Id == Model.DoctorId)">@d.FullName</option> }
+        </select>
+    </form>
+</div>
+
+<div class="board" data-move-url="/admin/appointments/move" data-can-edit="@(Model.CanEdit ? "1" : "0")">
+    @foreach (var s in Model.Stages)
+    {
+        var items = Model.Items.Where(a => a.StageId == s.Id).ToList();
+        <section class="lane" data-stage="@s.Id" data-name="@s.Name" style="--c:@s.Color" aria-label="@s.Name">
+            <header class="lane-head">
+                <span class="lane-icon">@Ui.Icon(s.Icon, "icon-sm")</span>
+                <h3>@s.Name</h3>
+                <span class="lane-count">@items.Count</span>
+            </header>
+            <div class="lane-body">
+                <div class="lane-empty @(items.Count > 0 ? "sr-only" : "")">کسی در این مرحله نیست</div>
+                @foreach (var a in items)
+                {
+                    <article class="ticket @(a.IsPaid ? "is-paid" : "")" data-id="@a.Id" data-sort="@Jalali.Time(a.StartTime)">
+                        <div class="ticket-top">
+                            <span class="ticket-time">@Jalali.Time(a.StartTime)</span>
+                            <span class="ticket-code">@a.TrackingCode</span>
+                        </div>
+                        <a class="ticket-name" href="/admin/appointments/@a.Id">@a.Patient.FullName</a>
+                        <div class="ticket-meta">
+                            <span>@Ui.Icon("stethoscope", "icon-sm")@a.Doctor.FullName.Replace("دکتر ", "")</span>
+                            @if (a.Service != null) { <span>@Ui.Icon("sparkles", "icon-sm")@a.Service.Name</span> }
+                        </div>
+                        @if (Model.CanEdit)
+                        {
+                            <div class="ticket-actions">
+                                <button type="button" class="btn btn-ghost btn-sm btn-icon" data-step="prev" title="مرحله‌ی قبل" aria-label="مرحله‌ی قبل">@Ui.Icon("arrow-right", "icon-sm")</button>
+                                <a class="btn btn-ghost btn-sm btn-icon" href="tel:@a.Patient.Mobile" title="تماس" aria-label="تماس">@Ui.Icon("phone", "icon-sm")</a>
+                                <button type="button" class="btn btn-outline btn-sm" data-step="next"><span>بعدی</span>@Ui.Icon("arrow-left", "icon-sm")</button>
+                            </div>
+                        }
+                    </article>
+                }
+            </div>
+        </section>
+    }
+</div>
+@if (Model.Items.Count == 0)
+{
+    <p class="muted" style="margin-top:12px">برای این روز نوبت فعالی ثبت نشده است.</p>
+}

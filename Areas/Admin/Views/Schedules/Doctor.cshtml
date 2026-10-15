@@ -1,0 +1,129 @@
+@model ScheduleVm
+@{
+    int[] lens = { 10, 15, 20, 30, 45, 60 };
+    var offField = new JDateField("date", null);
+    var weekly = Model.Rules.Where(r => r.IsActive).Sum(SlotService.CountSlots);
+}
+@functions {
+    IHtmlContent LenOptions(int[] lens, int selected)
+    {
+        var sb = new System.Text.StringBuilder();
+        foreach (var l in lens)
+            sb.Append($"<option value=\"{l}\"{(l == selected ? " selected" : "")}>هر {l} دقیقه</option>");
+        if (!lens.Contains(selected))
+            sb.Append($"<option value=\"{selected}\" selected>هر {selected} دقیقه</option>");
+        return new HtmlString(sb.ToString());
+    }
+}
+
+<div class="page-head">
+    <div style="display:flex;gap:14px;align-items:center">
+        <partial name="_DocPhoto" model="(Model.Doctor.PhotoPath, Model.Doctor.FullName, (string?)null)" />
+        <div>
+            <h2>@Model.Doctor.FullName</h2>
+            <p>ساعت‌هایی که این پزشک در طول هفته نوبت می‌دهد. الان <b>@weekly</b> نوبت در هفته.</p>
+        </div>
+    </div>
+    @if (Model.Doctors.Count > 1)
+    {
+        <div class="field" style="margin:0;min-width:220px">
+            <label class="sr-only" for="doc-switch">پزشک</label>
+            <select class="select" id="doc-switch" onchange="location.href='/admin/schedules/'+this.value">
+                @foreach (var d in Model.Doctors)
+                {
+                    <option value="@d.Id" selected="@(d.Id == Model.Doctor.Id)">@d.FullName</option>
+                }
+            </select>
+        </div>
+    }
+</div>
+
+<div class="split">
+    <form asp-antiforgery="true" method="post" action="/admin/schedules/@Model.Doctor.Id">
+        <div class="week">
+            @foreach (var day in Jalali.WeekOrder)
+            {
+                var ranges = Model.Rules.Where(r => r.DayOfWeek == day).OrderBy(r => r.StartTime).ToList();
+                <div class="card week-day" data-day="@((int)day)">
+                    <div class="week-day-name">
+                        @Jalali.DayName(day)
+                        <small class="day-off-note">نوبت نمی‌دهد</small>
+                    </div>
+                    <div>
+                        <div class="ranges">
+                            @foreach (var r in ranges)
+                            {
+                                <div class="range">
+                                    <input type="hidden" data-f="day" value="@((int)r.DayOfWeek)" />
+                                    <span class="faint">از</span>
+                                    <input class="input" type="time" data-f="start" value="@Jalali.Time(r.StartTime)" step="300" required aria-label="شروع" />
+                                    <span class="faint">تا</span>
+                                    <input class="input" type="time" data-f="end" value="@Jalali.Time(r.EndTime)" step="300" required aria-label="پایان" />
+                                    <select class="select" data-f="len" aria-label="فاصله‌ی نوبت‌ها">@LenOptions(lens, r.SlotMinutes)</select>
+                                    <span class="range-count"></span>
+                                    <button type="button" class="btn btn-ghost btn-sm btn-icon range-del" aria-label="حذف بازه">@Ui.Icon("x", "icon-sm")</button>
+                                </div>
+                            }
+                        </div>
+                        <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+                            <button type="button" class="btn btn-ghost btn-sm" data-add-range>@Ui.Icon("plus", "icon-sm")افزودن بازه</button>
+                            <button type="button" class="btn btn-ghost btn-sm" data-copy-to-all title="همین بازه‌ها را برای شنبه تا پنجشنبه هم بگذار">@Ui.Icon("layers", "icon-sm")کپی برای همه‌ی روزها</button>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+        <div style="position:sticky;bottom:0;padding:14px 0;background:linear-gradient(to top, var(--bg) 70%, transparent);margin-top:8px">
+            <button class="btn btn-primary" type="submit">@Ui.Icon("check")ذخیره‌ی برنامه‌ی هفتگی</button>
+        </div>
+    </form>
+
+    <div class="grid">
+        <section class="card card-pad">
+            <h3 style="font-size:16px;margin-bottom:6px">روزهای تعطیل و مرخصی</h3>
+            <p class="muted" style="font-size:13.5px;margin-bottom:16px">در این روزها هیچ نوبتی برای این پزشک نشان داده نمی‌شود.</p>
+            <form asp-antiforgery="true" method="post" action="/admin/schedules/@Model.Doctor.Id/off">
+                <div class="field">
+                    <span class="label">تاریخ</span>
+                    <partial name="_JDate" model="offField" />
+                </div>
+                <div class="field">
+                    <label for="reason">علت (اختیاری)</label>
+                    <input class="input" id="reason" name="reason" placeholder="مثلا سفر یا تعطیلی رسمی" />
+                </div>
+                <button class="btn btn-outline" type="submit">@Ui.Icon("calendar-x")ثبت روز تعطیل</button>
+            </form>
+            @if (Model.TimeOffs.Count > 0)
+            {
+                <ul class="timeline-list" style="margin:18px -22px -22px;border-top:1px solid var(--line)">
+                    @foreach (var t in Model.TimeOffs)
+                    {
+                        <li style="grid-template-columns:1fr auto">
+                            <span class="tl-who"><b>@Jalali.Long(t.Date)</b><span>@(t.Reason ?? "تعطیل")</span></span>
+                            <form asp-antiforgery="true" method="post" action="/admin/schedules/@Model.Doctor.Id/off/@t.Id/delete">
+                                <button class="btn btn-ghost btn-sm btn-icon range-del" aria-label="حذف">@Ui.Icon("trash-2", "icon-sm")</button>
+                            </form>
+                        </li>
+                    }
+                </ul>
+            }
+        </section>
+        <section class="card card-pad" style="background:var(--orchid-100);border-color:transparent">
+            <h3 style="font-size:15px;margin-bottom:8px;color:var(--orchid-600)">نوبت‌ها چطور ساخته می‌شوند؟</h3>
+            <p style="font-size:13.5px;color:var(--plum-700)">هر بازه به نوبت‌های مساوی تقسیم می‌شود. مثلا ۱۰ تا ۱۲ با فاصله‌ی ۱۵ دقیقه یعنی ۸ نوبت: ۱۰:۰۰، ۱۰:۱۵، ۱۰:۳۰ و ... . یک روز می‌تواند چند بازه داشته باشد، مثل صبح و عصر.</p>
+        </section>
+    </div>
+</div>
+
+<template id="range-tpl">
+    <div class="range">
+        <input type="hidden" data-f="day" value="" />
+        <span class="faint">از</span>
+        <input class="input" type="time" data-f="start" value="10:00" step="300" required aria-label="شروع" />
+        <span class="faint">تا</span>
+        <input class="input" type="time" data-f="end" value="13:00" step="300" required aria-label="پایان" />
+        <select class="select" data-f="len" aria-label="فاصله‌ی نوبت‌ها">@LenOptions(lens, 15)</select>
+        <span class="range-count"></span>
+        <button type="button" class="btn btn-ghost btn-sm btn-icon range-del" aria-label="حذف بازه">@Ui.Icon("x", "icon-sm")</button>
+    </div>
+</template>

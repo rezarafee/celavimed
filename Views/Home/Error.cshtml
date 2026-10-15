@@ -1,0 +1,12 @@
+@{
+    ViewData["Title"] = "خطا";
+    var code = (int)ViewBag.Code;
+}
+<section class="hero" style="padding-bottom:96px">
+    <div class="wrap">
+        <p class="hero-kicker">@(code == 404 ? "صفحه پیدا نشد" : "خطا")</p>
+        <h1>@(code == 404 ? "این صفحه وجود ندارد" : "مشکلی پیش آمد")</h1>
+        <p>@(code == 404 ? "آدرس را بررسی کنید یا به صفحه‌ی رزرو برگردید." : "چند لحظه بعد دوباره امتحان کنید. اگر تکرار شد، تلفنی تماس بگیرید.")</p>
+        <p style="margin-top:24px"><a class="btn btn-primary" href="/">صفحه‌ی رزرو</a></p>
+    </div>
+</section>
