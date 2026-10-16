@@ -7,6 +7,8 @@
 @font-face { font-family: "Vazirmatn"; src: url("../fonts/Vazirmatn-FD-ExtraBold.woff2") format("woff2"); font-weight: 800; font-display: swap; }
 @font-face { font-family: "Naskh"; src: url("../fonts/noto-naskh-arabic-arabic-500-normal.woff2") format("woff2"); font-weight: 500; font-display: swap; }
 @font-face { font-family: "Naskh"; src: url("../fonts/noto-naskh-arabic-arabic-700-normal.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+/* حروف رومی کتیبه‌ای، فقط برای نوشتار Celavimed؛ هم‌خانواده‌ی قاب‌های طاقی */
+@font-face { font-family: "Marcellus"; src: url("../fonts/marcellus-latin-400-normal.woff2") format("woff2"); font-weight: 400; font-display: swap; }
 
 :root {
   /* پالت: آلوی تیره، ارکیده، صورتی کوارتز، سبز معدنی، چینی سرد */
@@ -44,6 +46,7 @@
 
   --font: "Vazirmatn", Tahoma, sans-serif;
   --display: "Naskh", "Vazirmatn", serif;
+  --wordmark: "Marcellus", "Vazirmatn", serif;
   color-scheme: light;
 }
 
@@ -89,6 +92,10 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .btn-primary:hover { background: var(--orchid-600); color: #fff; }
 .btn-dark { background: var(--plum-900); color: #fff; }
 .btn-dark:hover { background: var(--plum-700); color: #fff; }
+.btn-quartz { background: var(--quartz); color: var(--plum-900); }
+.btn-quartz:hover { background: #F5E2DF; color: var(--plum-900); }
+.brand-mark { font-family: var(--wordmark) !important; font-weight: 400 !important; font-size: 19px !important; }
+.wordmark { font-family: var(--wordmark); font-weight: 400; letter-spacing: .06em; direction: ltr; unicode-bidi: isolate; }
 .btn-outline { border-color: var(--line-strong); background: var(--surface); }
 .btn-outline:hover { border-color: var(--orchid); color: var(--orchid); }
 .btn-ghost { background: transparent; color: var(--text-2); }

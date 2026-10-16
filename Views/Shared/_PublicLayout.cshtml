@@ -18,6 +18,7 @@
     <title>@(ViewData["Title"] ?? "رزرو آنلاین نوبت") · @clinic</title>
     <link rel="icon" href="/img/favicon.svg" type="image/svg+xml" />
     <link rel="preload" href="/fonts/Vazirmatn-FD-Regular.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/noto-naskh-arabic-arabic-700-normal.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="~/css/base.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/public.css" asp-append-version="true" />
 </head>
@@ -26,7 +27,7 @@
     <div class="wrap">
         <a class="brand" href="/">
             <span class="brand-mark" aria-hidden="true">C</span>
-            <span><b>@clinic</b><small>@tagline</small></span>
+            <span><b class="wordmark">@clinic</b><small>@tagline</small></span>
         </a>
         <nav>
             @if (!string.IsNullOrEmpty(phone))
@@ -39,7 +40,7 @@
 @RenderBody()
 <footer class="site-foot">
     <div class="wrap">
-        <b>@clinic</b>
+        <b class="wordmark">@clinic</b>
         @if (!string.IsNullOrEmpty(address)) { <span>@Ui.Icon("map-pin", "icon-sm")@address</span> }
         @if (!string.IsNullOrEmpty(phone)) { <span>@Ui.Icon("phone", "icon-sm")<a class="ltr" href="tel:@phone">@phone</a></span> }
         <a class="staff" href="/account/login">ورود همکاران</a>

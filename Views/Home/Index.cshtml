@@ -1,13 +1,25 @@
-@inject IConfiguration Config
 @{
     ViewData["Title"] = "رزرو آنلاین نوبت";
-    var clinic = Config["Clinic:Name"] ?? "Celavimed";
+    var next = ViewBag.Next as Celavimed.Controllers.NextFreeSlot;
 }
 <section class="hero">
-    <div class="wrap">
-        <p class="hero-kicker">رزرو آنلاین @clinic</p>
-        <h1>روز و ساعت مراجعه را خودتان انتخاب کنید</h1>
-        <p>پزشک را انتخاب کنید، ساعت‌های آزاد را در تقویم ببینید و نوبت بگیرید. منشی مرکز برای هماهنگی نهایی با شما تماس می‌گیرد.</p>
+    <div class="wrap hero-grid">
+        <div class="hero-copy">
+            <h1>نوبت‌تان را<br />خودتان انتخاب کنید</h1>
+            <p>ساعت‌های آزاد پزشکان را ببینید و همین‌جا رزرو کنید. منشی مرکز برای تایید نهایی با شما تماس می‌گیرد.</p>
+        </div>
+        @if (next != null)
+        {
+            var (_, nm, nd) = Jalali.Parts(next.Date);
+            var dayWord = next.Date == Clock.Today ? "امروز" : next.Date == Clock.Today.AddDays(1) ? "فردا" : Jalali.DayName(next.Date.DayOfWeek);
+            <aside class="next-arch" aria-labelledby="next-title">
+                <p id="next-title">نزدیک‌ترین نوبت آزاد</p>
+                <b class="next-day">@dayWord</b>
+                <span class="next-date">@nd @Jalali.MonthNames[nm - 1]، ساعت @Jalali.Time(next.Start)</span>
+                <span class="next-doc">@next.DoctorName</span>
+                <button type="button" class="btn btn-quartz" id="quick-pick" data-doctor="@next.DoctorId" data-date="@next.Date.ToString("yyyy-MM-dd")" data-time="@Jalali.Time(next.Start)">همین نوبت را می‌خواهم</button>
+            </aside>
+        }
     </div>
 </section>
 
@@ -115,13 +127,6 @@
     </div>
 </section>
 
-<section class="how">
-    <div class="wrap how-grid">
-        <div><h3>@Ui.Icon("calendar-days")ساعت آزاد را ببینید</h3><p>تقویم فقط ساعت‌هایی را نشان می‌دهد که پزشک واقعا در مرکز است و کسی رزروشان نکرده.</p></div>
-        <div><h3>@Ui.Icon("phone-call")تماس منشی</h3><p>بعد از ثبت، منشی تماس می‌گیرد تا ساعت را قطعی کند و اگر لازم است توضیح بدهد.</p></div>
-        <div><h3>@Ui.Icon("sparkles")روز مراجعه</h3><p>کمی زودتر از ساعت نوبت در پذیرش باشید و کد پیگیری را بگویید.</p></div>
-    </div>
-</section>
 
 @section Scripts {
     <script src="~/js/jalali.js" asp-append-version="true"></script>

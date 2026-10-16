@@ -34,7 +34,7 @@
         <span class="doctor-photo">${d.photo ? `<img src="${esc(d.photo)}" alt="" loading="lazy">` : `<span>${esc(d.name.replace("دکتر", "").trim().charAt(0))}</span>`}</span>
         <h3>${esc(d.name)}</h3>
         <span class="headline">${esc(d.headline || "")}</span>
-        ${d.services.length ? `<span class="tags">${d.services.slice(0, 4).map((s) => `<span>${esc(s.name)}</span>`).join("")}</span>` : ""}
+        ${d.services.length ? `<span class="tags">${d.services.slice(0, 4).map((s) => esc(s.name)).join("، ")}</span>` : ""}
         ${d.hasSchedule ? "" : '<span class="no-slot">فعلا نوبت آنلاین ندارد</span>'}
       </button>`).join("");
     $$(".doctor", list).forEach((el) => el.addEventListener("click", () => {
@@ -214,6 +214,31 @@
     $$(".step-val").forEach((x) => (x.textContent = ""));
     resetSlots();
     go(1);
+  });
+
+  /* ---------- نزدیک‌ترین نوبت آزاد (هیرو) ---------- */
+  const quick = document.getElementById("quick-pick");
+  if (quick) quick.addEventListener("click", async () => {
+    const d = doctors.find((x) => x.id === +quick.dataset.doctor);
+    if (!d) return;
+    $$(".doctor").forEach((x) => x.classList.toggle("is-selected", +x.dataset.id === d.id));
+    const j = J.toJ(quick.dataset.date);
+    Object.assign(state, { doctor: d, date: quick.dataset.date, time: null, view: { jy: j.jy, jm: j.jm }, avail: {} });
+    $('[data-val="doctor"]').textContent = d.name;
+    quick.disabled = true;
+    await loadMonth();
+    await loadSlots();
+    quick.disabled = false;
+    const btn = $(`.slot[data-time="${quick.dataset.time}"]`, slotsBox);
+    if (btn && !btn.disabled) {
+      btn.classList.add("is-selected");
+      state.time = btn.dataset.time;
+      $('[data-val="time"]').textContent = `${J.dayMonth(state.date)}، ساعت ${state.time}`;
+      $("#to-details").disabled = false;
+      go(3);
+    } else {
+      go(2);
+    }
   });
 
   renderDoctors();

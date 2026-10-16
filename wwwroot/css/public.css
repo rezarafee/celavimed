@@ -6,24 +6,41 @@ body.public { background: var(--surface); overflow-x: hidden; }
 .site-head .wrap { display: flex; align-items: center; gap: 16px; height: 76px; }
 .site-head .brand { display: flex; align-items: center; gap: 12px; color: var(--plum-900); }
 .site-head .brand-mark { width: 34px; height: 42px; border-radius: 999px 999px 8px 8px; background: linear-gradient(180deg, var(--quartz), #C99AB8); display: grid; place-items: center; font-weight: 800; color: var(--plum-900); }
-.site-head .brand b { font-size: 19px; font-weight: 800; display: block; line-height: 1.3; }
+.site-head .brand b { font-size: 23px; display: block; line-height: 1.3; }
 .site-head .brand small { font-size: 12px; color: var(--text-3); }
 .site-head nav { margin-inline-start: auto; display: flex; align-items: center; gap: 6px; }
 .site-head nav a { color: var(--text-2); font-size: 14px; padding: 8px 12px; border-radius: 10px; display: inline-flex; gap: 6px; align-items: center; }
 .site-head nav a:hover { background: var(--orchid-100); color: var(--orchid-600); }
 
-/* ---------- هیرو ---------- */
-.hero { position: relative; background: var(--plum-900); color: #fff; overflow: hidden; padding: 64px 0 140px; }
-.hero::before, .hero::after { content: ""; position: absolute; border-radius: 999px 999px 0 0; border: 1px solid rgba(237, 211, 208, .22); }
-.hero::before { width: 300px; height: 420px; inset-inline-end: 6%; bottom: -60px; background: linear-gradient(180deg, rgba(237,211,208,.16), rgba(237,211,208,0) 80%); }
-.hero::after { width: 200px; height: 300px; inset-inline-end: calc(6% + 220px); bottom: -80px; }
-.hero .wrap { position: relative; z-index: 1; }
-.hero-kicker { color: var(--quartz); font-size: 15px; margin-bottom: 10px; }
-.hero h1 { font-family: var(--display); font-weight: 700; font-size: clamp(34px, 5.4vw, 60px); line-height: 1.45; max-width: 13em; }
-.hero p { color: #D8C8DD; font-size: 17px; max-width: 34em; margin-top: 14px; line-height: 2; }
+/* ---------- هیرو: متن + طاق «نزدیک‌ترین نوبت» ---------- */
+.hero { position: relative; background: var(--plum-900); color: #fff; overflow: hidden; padding: 56px 0 96px; }
+.hero-grid { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 48px; align-items: end; }
+.hero h1 { font-family: var(--display); font-weight: 700; font-size: clamp(36px, 5.6vw, 66px); line-height: 1.5; }
+.hero-copy p { color: #D8C8DD; font-size: 17px; max-width: 30em; margin-top: 16px; line-height: 2; }
+
+.next-arch {
+  position: relative; width: 300px; padding: 64px 32px 30px; text-align: center;
+  border-radius: 999px 999px 0 0; color: var(--plum-900);
+  background: linear-gradient(180deg, #F6E5E2 0%, var(--quartz) 100%);
+  display: flex; flex-direction: column; align-items: center;
+}
+/* قاب دوم، مثل لبه‌ی یک درگاه */
+.next-arch::before { content: ""; position: absolute; inset: -12px -12px 0; border-radius: 999px 999px 0 0; border: 1px solid rgba(237, 211, 208, .35); border-bottom: 0; pointer-events: none; }
+/* خط افق زیر طاق */
+.next-arch::after { content: ""; position: absolute; inset-inline: -64px; bottom: 0; height: 1px; background: rgba(237, 211, 208, .35); }
+.next-arch p { font-size: 14px; color: var(--orchid-600); }
+.next-day { font-family: var(--display); font-size: 54px; line-height: 1.35; margin-top: 6px; }
+.next-date { font-size: 17px; font-weight: 600; }
+.next-doc { font-size: 14.5px; color: var(--text-2); margin-top: 2px; }
+.next-arch .btn { margin-top: 22px; width: 100%; min-height: 48px; background: var(--plum-900); color: #fff; }
+.next-arch .btn:hover { background: var(--plum-700); }
+@media (prefers-reduced-motion: no-preference) {
+  .next-arch { animation: arch-open .9s cubic-bezier(.2, .7, .2, 1) .15s backwards; }
+  @keyframes arch-open { from { clip-path: inset(100% 0 0 0 round 999px 999px 0 0); } to { clip-path: inset(0 0 0 0 round 999px 999px 0 0); } }
+}
 
 /* ---------- ویزارد رزرو ---------- */
-.booking { position: relative; z-index: 2; margin-top: -96px; padding-bottom: 72px; }
+.booking { position: relative; z-index: 2; margin-top: -48px; padding-bottom: 72px; }
 .panel { background: var(--surface); border-radius: 26px; border: 1px solid var(--line); box-shadow: 0 30px 60px -40px rgba(36, 18, 42, .45); overflow: hidden; }
 .steps { display: flex; gap: 0; border-bottom: 1px solid var(--line); background: var(--surface-2); }
 .steps li { list-style: none; flex: 1; display: flex; align-items: center; gap: 10px; padding: 18px 24px; color: var(--text-3); font-weight: 600; font-size: 14.5px; position: relative; }
@@ -44,18 +61,18 @@ body.public { background: var(--surface); overflow-x: hidden; }
 
 /* پزشکان با قاب طاقی */
 .doctors { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; }
-.doctor { all: unset; box-sizing: border-box; cursor: pointer; display: flex; flex-direction: column; border-radius: 22px; padding: 14px 14px 18px; border: 1px solid var(--line); background: var(--surface); transition: border-color .15s, box-shadow .2s, transform .2s; }
-.doctor:hover { border-color: var(--quartz); box-shadow: 0 18px 36px -26px rgba(36,18,42,.5); transform: translateY(-2px); }
+.doctor { all: unset; box-sizing: border-box; cursor: pointer; display: flex; flex-direction: column; border-radius: 16px; padding: 6px; }
 .doctor:focus-visible { box-shadow: var(--focus); }
-.doctor.is-selected { border-color: var(--plum-900); box-shadow: 0 0 0 1px var(--plum-900); }
+.doctor:hover .doctor-photo { box-shadow: 0 0 0 1px var(--quartz); }
+.doctor.is-selected .doctor-photo { box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--orchid); }
+.doctor.is-selected h3 { color: var(--orchid-600); }
 .doctor[aria-disabled=true] { opacity: .55; cursor: not-allowed; }
-.doctor-photo { aspect-ratio: 4 / 4.6; border-radius: 999px 999px 16px 16px; overflow: hidden; background: linear-gradient(180deg, var(--quartz-200), var(--quartz)); display: grid; place-items: center; }
+.doctor-photo { aspect-ratio: 4 / 4.8; border-radius: 999px 999px 6px 6px; transition: box-shadow .15s; overflow: hidden; background: linear-gradient(180deg, var(--quartz-200), var(--quartz)); display: grid; place-items: center; }
 .doctor-photo img { width: 100%; height: 100%; object-fit: cover; }
 .doctor-photo span { font-family: var(--display); font-size: 64px; color: var(--orchid); opacity: .65; }
 .doctor h3 { font-family: var(--display); font-size: 21px; font-weight: 700; margin-top: 14px; color: var(--plum-900); }
 .doctor .headline { font-size: 14px; color: var(--text-2); }
-.doctor .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-.doctor .tags span { font-size: 12.5px; padding: 3px 10px; border-radius: 999px; background: var(--orchid-100); color: var(--orchid-600); }
+.doctor .tags { margin-top: 8px; font-size: 13.5px; color: var(--orchid-600); line-height: 1.8; }
 .doctor .no-slot { margin-top: 10px; font-size: 13px; color: var(--text-3); }
 
 /* تقویم و ساعت‌ها */
@@ -113,14 +130,7 @@ body.public { background: var(--surface); overflow-x: hidden; }
 .ticket-box b { font-size: 28px; letter-spacing: 4px; direction: ltr; color: var(--plum-900); }
 .done-meta { margin-top: 18px; font-weight: 600; }
 
-/* ---------- بخش‌های زیرین ---------- */
-.how { padding: 24px 0 80px; }
-.how-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; }
-.how h3 { font-size: 17px; margin-bottom: 6px; display: flex; align-items: center; gap: 10px; }
-.how h3 .icon { color: var(--orchid); }
-.how p { color: var(--text-2); font-size: 14.5px; }
-
-.site-foot { background: var(--bg); border-top: 1px solid var(--line); padding: 28px 0; font-size: 14px; color: var(--text-2); }
+.site-foot { background: var(--surface); border-top: 1px solid var(--line); padding: 28px 0; font-size: 14px; color: var(--text-2); }
 .site-foot .wrap { display: flex; gap: 24px; flex-wrap: wrap; align-items: center; }
 .site-foot span { display: inline-flex; gap: 6px; align-items: center; }
 .site-foot .staff { margin-inline-start: auto; color: var(--text-3); }
@@ -134,19 +144,19 @@ body.public { background: var(--surface); overflow-x: hidden; }
 
 /* ---------- ریسپانسیو ---------- */
 @media (max-width: 900px) {
+  .hero-grid { grid-template-columns: 1fr; gap: 32px; }
+  .next-arch { width: 100%; max-width: 300px; justify-self: center; padding: 44px 24px 24px; }
+  .next-day { font-size: 44px; }
   .picker, .details { grid-template-columns: 1fr; gap: 24px; }
   .details .summary { order: -1; }
-  .how-grid { grid-template-columns: 1fr; gap: 20px; }
 }
 @media (max-width: 640px) {
   .wrap { padding: 0 16px; }
   .site-head .wrap { height: 64px; }
   .site-head nav .nav-text { display: none; }
-  .hero { padding: 36px 0 112px; }
-  .hero p { font-size: 15.5px; }
-  .hero::before { width: 180px; height: 260px; inset-inline-end: -40px; }
-  .hero::after { display: none; }
-  .booking { margin-top: -80px; padding-bottom: 48px; }
+  .hero { padding: 32px 0 72px; }
+  .hero-copy p { font-size: 15.5px; }
+  .booking { margin-top: -40px; padding-bottom: 48px; }
   .panel { border-radius: 20px; }
   .steps li { padding: 14px 10px; gap: 6px; font-size: 13px; flex-direction: column; text-align: center; }
   .steps li.is-active::after { inset-inline: 10px; }
@@ -154,7 +164,7 @@ body.public { background: var(--surface); overflow-x: hidden; }
   .stage { padding: 20px 16px 24px; }
   .stage-title h2 { font-size: 18px; }
   .doctors { grid-template-columns: 1fr 1fr; gap: 12px; }
-  .doctor { padding: 10px 10px 14px; border-radius: 18px; }
+  .doctor { padding: 4px; }
   .doctor h3 { font-size: 17px; margin-top: 10px; }
   .doctor .headline { font-size: 12.5px; }
   .doctor .tags { display: none; }
