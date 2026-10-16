@@ -1,12 +1,11 @@
 @model DashboardVm
 @{
-    var max = Math.Max(1, Model.StageCounts.Select(x => x.Count).DefaultIfEmpty(0).Max());
     var name = User.FindFirst("FullName")?.Value ?? "";
 }
 <div class="page-head">
     <div>
         <h2>سلام @name</h2>
-        <p>خلاصه‌ی امروز مرکز، از رزرو آنلاین تا خروج بیمار.</p>
+        <p>امروز @Jalali.Long(Clock.Today) است و @Model.TodayTotal بیمار نوبت دارند.</p>
     </div>
     <div class="page-actions">
         <a class="btn btn-outline" href="/admin/appointments/new">@Ui.Icon("calendar-plus")نوبت تلفنی</a>
@@ -14,33 +13,29 @@
     </div>
 </div>
 
-<section class="stats">
-    <div class="card stat stat-hero">
-        <div class="stat-label">@Ui.Icon("calendar-check", "icon-sm")بیماران امروز</div>
-        <div class="stat-value">@Model.TodayTotal</div>
-        <div class="stat-sub">@Model.TodayDone نفر کارشان تمام شده</div>
+<section class="journey" aria-labelledby="journey-title">
+    <div class="journey-head">
+        <h3 id="journey-title">بیماران امروز در هر مرحله</h3>
+        <span>@Model.TodayDone نفر از @Model.TodayTotal نفر کارشان تمام شده</span>
     </div>
-    <a class="card stat" href="/admin/appointments?view=pending" style="color:inherit">
-        <div class="stat-label">@Ui.Icon("phone-call", "icon-sm")منتظر تماس منشی</div>
-        <div class="stat-value" style="color:var(--orchid)">@Model.PendingConfirm</div>
-        <div class="stat-sub">رزرو آنلاین تایید‌نشده</div>
-    </a>
-    <div class="card stat">
-        <div class="stat-label">@Ui.Icon("calendar-days", "icon-sm")هفت روز آینده</div>
-        <div class="stat-value">@Model.UpcomingWeek</div>
-        <div class="stat-sub">نوبت ثبت‌شده</div>
-    </div>
-    <div class="card stat">
-        <div class="stat-label">@Ui.Icon("sparkles", "icon-sm")رزرو در ۲۴ ساعت گذشته</div>
-        <div class="stat-value">@Model.NewOnline24h</div>
-        <div class="stat-sub">آنلاین و تلفنی</div>
-    </div>
+    <ol class="journey-steps">
+        @foreach (var (stage, count) in Model.StageCounts)
+        {
+            <li style="--c:@stage.Color" class="@(count == 0 ? "is-empty" : "")">
+                <a href="/admin/board">
+                    <span class="journey-arch">@Ui.Icon(stage.Icon)</span>
+                    <b>@count</b>
+                    <span>@stage.Name</span>
+                </a>
+            </li>
+        }
+    </ol>
 </section>
 
 <div class="grid" style="grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);" id="dash-grid">
     <section class="card">
         <div class="card-head">
-            <h3>نوبت‌های امروز</h3>
+            <h3>نوبت‌های امروز <span class="count-chip">@Model.TodayTotal</span></h3>
             <a class="btn btn-ghost btn-sm" href="/admin/board">مشاهده‌ی مراحل @Ui.Icon("chevron-left", "icon-sm")</a>
         </div>
         @if (Model.Today.Count == 0)
@@ -66,23 +61,14 @@
     </section>
 
     <div class="grid" style="align-content:start">
-        <section class="card card-pad">
-            <h3 style="font-size:16px;margin-bottom:16px">امروز در هر مرحله</h3>
-            <div class="stage-bars">
-                @foreach (var (stage, count) in Model.StageCounts)
-                {
-                    <div class="stage-bar">
-                        <span>@stage.Name</span>
-                        <span class="stage-bar-track"><span class="stage-bar-fill" style="width:@(count * 100 / max)%;background:@stage.Color"></span></span>
-                        <b>@count</b>
-                    </div>
-                }
-            </div>
+        <section class="card card-pad facts">
+            <div><b>@Model.UpcomingWeek</b><span>نوبت در هفت روز آینده</span></div>
+            <div><b>@Model.NewOnline24h</b><span>رزرو جدید در ۲۴ ساعت گذشته</span></div>
         </section>
 
         <section class="card">
             <div class="card-head">
-                <h3>منتظر تایید تلفنی</h3>
+                <h3>منتظر تایید تلفنی <span class="count-chip">@Model.PendingConfirm</span></h3>
                 <a class="btn btn-ghost btn-sm" href="/admin/appointments?view=pending">همه</a>
             </div>
             @if (Model.ToConfirm.Count == 0)
