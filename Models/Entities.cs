@@ -8,6 +8,8 @@ public class ApplicationUser : IdentityUser
     [MaxLength(120)]
     public string FullName { get; set; } = "";
     public bool IsActive { get; set; } = true;
+    /// <summary>رمز پیش‌فرض یا موقت است و کاربر باید در اولین ورود آن را عوض کند.</summary>
+    public bool MustChangePassword { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public List<DoctorSecretary> SecretaryOf { get; set; } = new();

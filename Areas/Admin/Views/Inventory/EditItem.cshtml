@@ -1,0 +1,141 @@
+@model ItemForm
+@{
+    var isNew = Model.Id == 0;
+    var openingExpiry = new JDateField(nameof(ItemForm.OpeningExpiry), Model.OpeningExpiry, "بدون تاریخ انقضا", AllowEmpty: true, ClearLabel: "بدون انقضا");
+}
+<div class="page-head">
+    <div>
+        <h2>@(isNew ? "کالای جدید" : Model.Name)</h2>
+        <p>مشخصات ثابت کالا. موجودی، بچ و تاریخ انقضا با «ورود کالا» ثبت می‌شود.</p>
+    </div>
+    <div class="page-actions"><a class="btn btn-ghost" href="@(isNew ? "/admin/inventory" : $"/admin/inventory/items/{Model.Id}")">@Ui.Icon("arrow-right")بازگشت</a></div>
+</div>
+
+<form asp-antiforgery="true" method="post" action="/admin/inventory/items/save" id="item-form">
+    <input type="hidden" asp-for="Id" />
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div asp-validation-summary="All" class="alert alert-error"></div>
+    }
+    <div class="split">
+        <div class="grid">
+            <section class="card card-pad">
+                <h3 class="form-title">@Ui.Icon("package", "icon-sm")مشخصات اصلی</h3>
+                <div class="grid-form">
+                    <div class="field span-2">
+                        <span class="label">گروه</span>
+                        <div class="chips-select" id="group-chips">
+                            @foreach (var g in Model.AllGroups)
+                            {
+                                <label><input type="radio" name="GroupId" value="@g.Id" @(Model.GroupId == g.Id ? "checked" : "") /><span><i class="dot" style="background:@g.Color"></i>@g.Name</span></label>
+                            }
+                        </div>
+                    </div>
+                    <div class="field span-2">
+                        <label asp-for="Name">نام کالا</label>
+                        <input class="input" asp-for="Name" placeholder="مثلا دیسپورت ۵۰۰ واحد" maxlength="150" required />
+                    </div>
+                    <div class="field">
+                        <label asp-for="Manufacturer">شرکت سازنده</label>
+                        <input class="input" asp-for="Manufacturer" placeholder="مثلا Ipsen" maxlength="120" />
+                    </div>
+                    <div class="field">
+                        <label asp-for="Country">کشور سازنده</label>
+                        <input class="input" asp-for="Country" placeholder="مثلا فرانسه" maxlength="60" />
+                    </div>
+                    <div class="field">
+                        <label asp-for="Supplier">تأمین‌کننده</label>
+                        <input class="input" asp-for="Supplier" placeholder="شرکت پخش یا فروشنده" maxlength="120" />
+                    </div>
+                    <div class="field">
+                        <label asp-for="Code">کد کالا یا بارکد</label>
+                        <input class="input ltr-input" asp-for="Code" maxlength="40" />
+                    </div>
+                </div>
+            </section>
+
+            @foreach (var g in Model.AllGroups.Where(g => g.Fields.Count > 0))
+            {
+                <section class="card card-pad" data-group-fields="@g.Id" @(g.Id == Model.GroupId ? "" : "hidden")>
+                    <h3 class="form-title"><i class="dot" style="background:@g.Color"></i>مشخصه‌های گروه @g.Name</h3>
+                    <div class="grid-form">
+                        @foreach (var f in g.Fields.OrderBy(f => f.SortOrder).ThenBy(f => f.Id))
+                        {
+                            <div class="field">
+                                <label for="fv-@f.Id">@f.Name</label>
+                                <input class="input" id="fv-@f.Id" name="Values[@f.Id]" value="@(Model.Values.TryGetValue(f.Id, out var v) ? v : "")" maxlength="300" @(g.Id == Model.GroupId ? "" : "disabled") />
+                            </div>
+                        }
+                    </div>
+                </section>
+            }
+
+            <section class="card card-pad">
+                <h3 class="form-title">@Ui.Icon("notebook-pen", "icon-sm")نگهداری و توضیحات</h3>
+                <div class="field">
+                    <label asp-for="Storage">شرایط نگهداری</label>
+                    <input class="input" asp-for="Storage" placeholder="مثلا یخچال ۲ تا ۸ درجه، دور از نور" maxlength="120" />
+                </div>
+                <div class="field" style="margin-bottom:0">
+                    <label asp-for="Notes">یادداشت</label>
+                    <textarea class="textarea" asp-for="Notes" rows="3" maxlength="1000" placeholder="روش رقیق‌سازی، نکات مصرف و ..."></textarea>
+                </div>
+            </section>
+        </div>
+
+        <div class="grid">
+            <section class="card card-pad">
+                <h3 class="form-title">@Ui.Icon("wallet", "icon-sm")قیمت و موجودی</h3>
+                <div class="field">
+                    <label asp-for="Unit">واحد شمارش</label>
+                    <input class="input" asp-for="Unit" list="unit-list" maxlength="30" required />
+                    <datalist id="unit-list">@foreach (var u in InventoryReasons.Units) { <option value="@u"></option> }</datalist>
+                    <span class="hint">موجودی و قیمت‌ها بر اساس همین واحد است.</span>
+                </div>
+                <div class="field">
+                    <label asp-for="PurchasePrice">قیمت خرید هر واحد (تومان)</label>
+                    <input class="input ltr-input" asp-for="PurchasePrice" inputmode="numeric" data-money placeholder="0" />
+                </div>
+                <div class="field">
+                    <label asp-for="SalePrice">قیمت فروش هر واحد (تومان)</label>
+                    <input class="input ltr-input" asp-for="SalePrice" inputmode="numeric" data-money placeholder="0" />
+                </div>
+                <div class="field">
+                    <label asp-for="MinStock">حداقل موجودی</label>
+                    <input class="input ltr-input" asp-for="MinStock" inputmode="decimal" placeholder="0" />
+                    <span class="hint">وقتی موجودی به این عدد برسد، هشدار کمبود می‌گیرید.</span>
+                </div>
+                <label class="check"><input type="checkbox" asp-for="IsActive" />کالا فعال است</label>
+            </section>
+
+            @if (isNew)
+            {
+                <section class="card card-pad">
+                    <h3 class="form-title">@Ui.Icon("arrow-down-to-line", "icon-sm")موجودی اولیه</h3>
+                    <p class="hint" style="margin:-6px 0 14px">اختیاری. اگر الان از این کالا در انبار دارید، تعدادش را وارد کنید.</p>
+                    <div class="field">
+                        <label asp-for="OpeningQty">تعداد</label>
+                        <input class="input ltr-input" asp-for="OpeningQty" inputmode="decimal" />
+                    </div>
+                    <div class="field">
+                        <label asp-for="OpeningBatch">شماره بچ (سری ساخت)</label>
+                        <input class="input ltr-input" asp-for="OpeningBatch" maxlength="60" />
+                    </div>
+                    <div class="field" style="margin-bottom:0">
+                        <span class="label">تاریخ انقضا</span>
+                        <partial name="_JDate" model="openingExpiry" />
+                    </div>
+                </section>
+            }
+
+            <button class="btn btn-primary btn-block" type="submit">@Ui.Icon("check")@(isNew ? "ثبت کالا" : "ذخیره‌ی تغییرات")</button>
+        </div>
+    </div>
+</form>
+
+@if (!isNew)
+{
+    <form asp-antiforgery="true" method="post" action="/admin/inventory/items/@Model.Id/delete" data-confirm="«@Model.Name» حذف شود؟ اگر گردش داشته باشد فقط غیرفعال می‌شود." style="margin-top:18px">
+        <button class="btn btn-ghost range-del">@Ui.Icon("trash-2", "icon-sm")حذف کالا</button>
+    </form>
+}

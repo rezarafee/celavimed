@@ -18,6 +18,8 @@ public static class Clock
 
     public static DateTime NowIran => TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, Tehran);
     public static DateOnly Today => DateOnly.FromDateTime(NowIran);
+    public static DateTime FromIran(DateTime local) =>
+        TimeZoneInfo.ConvertTimeToUtc(DateTime.SpecifyKind(local, DateTimeKind.Unspecified), Tehran);
     public static DateTime ToIran(DateTime utc) =>
         TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), Tehran);
 }

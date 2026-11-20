@@ -1,0 +1,92 @@
+@model MovementsVm
+@{
+    var fromField = new JDateField("from", Model.From, "از ابتدا", AllowEmpty: true, ClearLabel: "از ابتدا");
+    var toField = new JDateField("to", Model.To, "تا امروز", AllowEmpty: true, ClearLabel: "تا امروز");
+}
+@functions {
+    static string Qty(decimal d) => InventoryService.Num(d);
+    static string Signed(decimal d) => (d > 0 ? "+" : d < 0 ? "−" : "") + InventoryService.Num(Math.Abs(d));
+}
+<div class="page-head">
+    <div>
+        <h2>گردش انبار</h2>
+        <p>دفتر همه‌ی ورودها، خروج‌ها و شمارش‌ها؛ چه کسی، چه زمانی و به چه علت.</p>
+    </div>
+    <div class="page-actions"><a class="btn btn-ghost" href="/admin/inventory">@Ui.Icon("arrow-right")بازگشت به انبار</a></div>
+</div>
+
+<div class="stats inv-move-stats">
+    <div class="card stat">
+        <div class="stat-label">@Ui.Icon("history", "icon-sm")ردیف‌های نمایش‌داده‌شده</div>
+        <div class="stat-value">@Model.Movements.Count</div>
+        <div class="stat-sub">@(Model.Movements.Count >= 400 ? "۴۰۰ ردیف آخر؛ بازه را کوتاه‌تر کنید" : "با فیلترهای فعلی")</div>
+    </div>
+    <div class="card stat">
+        <div class="stat-label">@Ui.Icon("arrow-down-to-line", "icon-sm")جمع ورودی</div>
+        <div class="stat-value">@Qty(Model.InQty)</div>
+        <div class="stat-sub">واحد، همه‌ی کالاها</div>
+    </div>
+    <div class="card stat">
+        <div class="stat-label">@Ui.Icon("arrow-up-from-line", "icon-sm")جمع خروجی</div>
+        <div class="stat-value">@Qty(Model.OutQty)</div>
+        <div class="stat-sub">واحد، همه‌ی کالاها</div>
+    </div>
+    <div class="card stat">
+        <div class="stat-label">@Ui.Icon("wallet", "icon-sm")ارزش خروجی</div>
+        <div class="stat-value">@Ui.Money(Model.OutValue)</div>
+        <div class="stat-sub">تومان، با قیمت خرید</div>
+    </div>
+</div>
+
+<section class="card">
+    <form class="filters" method="get" action="/admin/inventory/movements">
+        <div class="field">
+            <label for="mt">نوع</label>
+            <select class="select" id="mt" name="type" data-autosubmit>
+                <option value="">همه</option>
+                <option value="In" selected="@(Model.Type == "In")">ورود</option>
+                <option value="Out" selected="@(Model.Type == "Out")">خروج</option>
+                <option value="Adjust" selected="@(Model.Type == "Adjust")">شمارش</option>
+            </select>
+        </div>
+        <div class="field">
+            <label for="mg">گروه</label>
+            <select class="select" id="mg" name="group" data-autosubmit>
+                <option value="">همه‌ی گروه‌ها</option>
+                @foreach (var g in Model.Groups) { <option value="@g.Id" selected="@(Model.GroupId == g.Id)">@g.Name</option> }
+            </select>
+        </div>
+        <div class="field"><span class="label">از تاریخ</span><partial name="_JDate" model="fromField" /></div>
+        <div class="field"><span class="label">تا تاریخ</span><partial name="_JDate" model="toField" /></div>
+        <button class="btn btn-dark" type="submit">@Ui.Icon("filter", "icon-sm")اعمال</button>
+        @if (Model.Type != null || Model.GroupId.HasValue || Model.From.HasValue || Model.To.HasValue) { <a class="btn btn-ghost" href="/admin/inventory/movements">@Ui.Icon("rotate-ccw", "icon-sm")همه</a> }
+    </form>
+    @if (Model.Movements.Count == 0)
+    {
+        <div class="empty">@Ui.Icon("history")<b>گردشی پیدا نشد</b>با ثبت ورود یا خروج کالا، اینجا پر می‌شود.</div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table class="table">
+                <thead><tr><th>زمان</th><th>کالا</th><th>نوع</th><th>مقدار</th><th class="hide-sm">مانده</th><th class="hide-sm">بچ</th><th class="hide-md">کاربر</th><th class="hide-md">توضیح</th></tr></thead>
+                <tbody>
+                @foreach (var m in Model.Movements)
+                {
+                    var (cls, label) = m.Type switch { MovementType.In => ("pill-green", "ورود"), MovementType.Out => ("pill-orchid", "خروج"), _ => ("pill-amber", "شمارش") };
+                    <tr>
+                        <td style="white-space:nowrap">@Jalali.DateTimeShort(m.CreatedAt)</td>
+                        <td><a class="inv-name" href="/admin/inventory/items/@m.ItemId">@m.Item.Name</a><div class="inv-sub">@m.Item.Group.Name</div></td>
+                        <td><span class="pill @cls">@label</span>@if (m.Reason != null && m.Reason != "انبارگردانی") { <div class="inv-sub">@m.Reason</div> }</td>
+                        <td><b class="ltr">@Signed(m.Quantity)</b> <span class="faint">@m.Item.Unit</span></td>
+                        <td class="hide-sm">@Qty(m.BalanceAfter)</td>
+                        <td class="hide-sm ltr-cell">@(m.Batch?.BatchNo ?? "—")</td>
+                        <td class="hide-md">@m.CreatedBy</td>
+                        <td class="hide-md muted" style="font-size:13.5px">@(m.Note ?? "—")</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>

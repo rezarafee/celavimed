@@ -19,6 +19,13 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Appointment> Appointments => Set<Appointment>();
     public DbSet<AppointmentStageLog> StageLogs => Set<AppointmentStageLog>();
 
+    public DbSet<InventoryGroup> InventoryGroups => Set<InventoryGroup>();
+    public DbSet<InventoryField> InventoryFields => Set<InventoryField>();
+    public DbSet<InventoryItem> InventoryItems => Set<InventoryItem>();
+    public DbSet<InventoryItemValue> InventoryValues => Set<InventoryItemValue>();
+    public DbSet<InventoryBatch> InventoryBatches => Set<InventoryBatch>();
+    public DbSet<InventoryMovement> InventoryMovements => Set<InventoryMovement>();
+
     protected override void OnModelCreating(ModelBuilder b)
     {
         base.OnModelCreating(b);
@@ -50,5 +57,22 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
 
         b.Entity<AppointmentStageLog>().HasOne(x => x.Stage).WithMany().HasForeignKey(x => x.StageId).OnDelete(DeleteBehavior.Restrict);
         b.Entity<AppointmentStageLog>().HasOne(x => x.Appointment).WithMany(a => a.StageLogs).HasForeignKey(x => x.AppointmentId).OnDelete(DeleteBehavior.Cascade);
+
+        // انبار مواد اولیه
+        b.Entity<InventoryField>().HasOne(x => x.Group).WithMany(g => g.Fields).HasForeignKey(x => x.GroupId).OnDelete(DeleteBehavior.Cascade);
+        b.Entity<InventoryItem>().HasOne(x => x.Group).WithMany(g => g.Items).HasForeignKey(x => x.GroupId).OnDelete(DeleteBehavior.Restrict);
+        b.Entity<InventoryItem>().Property(x => x.MinStock).HasPrecision(12, 2);
+        b.Entity<InventoryItem>().HasIndex(x => x.Code);
+        b.Entity<InventoryItemValue>().HasKey(x => new { x.ItemId, x.FieldId });
+        b.Entity<InventoryItemValue>().HasOne(x => x.Item).WithMany(i => i.Values).HasForeignKey(x => x.ItemId).OnDelete(DeleteBehavior.Cascade);
+        b.Entity<InventoryItemValue>().HasOne(x => x.Field).WithMany().HasForeignKey(x => x.FieldId).OnDelete(DeleteBehavior.NoAction);
+        b.Entity<InventoryBatch>().HasOne(x => x.Item).WithMany(i => i.Batches).HasForeignKey(x => x.ItemId).OnDelete(DeleteBehavior.Cascade);
+        b.Entity<InventoryBatch>().Property(x => x.Quantity).HasPrecision(12, 2);
+        b.Entity<InventoryBatch>().HasIndex(x => new { x.ItemId, x.ExpiryDate });
+        b.Entity<InventoryMovement>().HasOne(x => x.Item).WithMany(i => i.Movements).HasForeignKey(x => x.ItemId).OnDelete(DeleteBehavior.Cascade);
+        b.Entity<InventoryMovement>().HasOne(x => x.Batch).WithMany().HasForeignKey(x => x.BatchId).OnDelete(DeleteBehavior.NoAction);
+        b.Entity<InventoryMovement>().Property(x => x.Quantity).HasPrecision(12, 2);
+        b.Entity<InventoryMovement>().Property(x => x.BalanceAfter).HasPrecision(12, 2);
+        b.Entity<InventoryMovement>().HasIndex(x => x.CreatedAt);
     }
 }

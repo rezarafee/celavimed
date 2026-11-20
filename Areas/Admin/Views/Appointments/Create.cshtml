@@ -60,39 +60,3 @@
         <button class="btn btn-primary btn-block" type="submit">@Ui.Icon("check")ثبت نوبت</button>
     </div>
 </form>
-
-@section Scripts {
-<script>
-(function () {
-    const form = document.getElementById("new-appt");
-    const doc = form.querySelector("#n-doc"), svc = form.querySelector("#n-svc");
-    const date = form.querySelector("input[name=Date]"), time = form.querySelector("#n-time"), box = form.querySelector("#n-slots");
-
-    function filterServices() {
-        const allowed = (doc.selectedOptions[0]?.dataset.services || "").split(",").filter(Boolean);
-        for (const o of svc.options) if (o.value) o.hidden = allowed.length > 0 && !allowed.includes(o.value);
-        if (svc.selectedOptions[0]?.hidden) svc.value = "";
-    }
-    async function loadSlots() {
-        if (!doc.value || !date.value) return;
-        box.innerHTML = '<span class="hint">در حال دریافت ساعت‌ها…</span>';
-        const res = await fetch(`/admin/appointments/slots?doctorId=${doc.value}&date=${date.value}`);
-        const slots = res.ok ? await res.json() : [];
-        if (!slots.length) { box.innerHTML = '<span class="hint">این پزشک در این روز نوبت نمی‌دهد.</span>'; return; }
-        box.innerHTML = "";
-        for (const s of slots) {
-            const l = document.createElement("label");
-            l.innerHTML = `<input type="radio" name="_slot" value="${s.start}" ${s.free ? "" : "disabled"}><span style="${s.free ? "" : "opacity:.4;text-decoration:line-through"}">${s.start}</span>`;
-            const r = l.querySelector("input");
-            if (s.start === time.value && s.free) r.checked = true;
-            r.addEventListener("change", () => time.value = s.start);
-            box.appendChild(l);
-        }
-    }
-    doc.addEventListener("change", () => { filterServices(); time.value = ""; loadSlots(); });
-    date.addEventListener("change", () => { time.value = ""; loadSlots(); });
-    filterServices();
-    loadSlots();
-})();
-</script>
-}

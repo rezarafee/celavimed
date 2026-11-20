@@ -60,6 +60,16 @@
                 </div>
             }
 
+            @if (isManager || User.IsInRole(Roles.Finance))
+            {
+                <div class="nav-group">
+                    <div class="nav-group-title">انبار</div>
+                    <a class="@Active("inventory")" href="/admin/inventory">@Ui.Icon("package")<span>مواد اولیه</span></a>
+                    <a class="@Active("inventory-moves")" href="/admin/inventory/movements">@Ui.Icon("history")<span>گردش انبار</span></a>
+                    <a class="@Active("inventory-groups")" href="/admin/inventory/groups">@Ui.Icon("layers")<span>گروه‌های انبار</span></a>
+                </div>
+            }
+
             @if (isManager)
             {
                 <div class="nav-group">

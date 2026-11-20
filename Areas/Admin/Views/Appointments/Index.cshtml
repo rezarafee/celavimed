@@ -34,14 +34,14 @@
         </div>
         <div class="field">
             <label class="label" for="f-doc">پزشک</label>
-            <select class="select" id="f-doc" name="DoctorId" onchange="this.form.submit()">
+            <select class="select" id="f-doc" name="DoctorId" data-autosubmit>
                 <option value="">همه‌ی پزشکان</option>
                 @foreach (var d in Model.Doctors) { <option value="@d.Id" selected="@(f.DoctorId == d.Id)">@d.FullName</option> }
             </select>
         </div>
         <div class="field">
             <label class="label" for="f-stage">مرحله</label>
-            <select class="select" id="f-stage" name="StageId" onchange="this.form.submit()">
+            <select class="select" id="f-stage" name="StageId" data-autosubmit>
                 <option value="">همه‌ی مراحل</option>
                 @foreach (var s in Model.Stages) { <option value="@s.Id" selected="@(f.StageId == s.Id)">@s.Name</option> }
             </select>

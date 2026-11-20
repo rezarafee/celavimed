@@ -28,7 +28,7 @@
     {
         <div class="field" style="margin:0;min-width:220px">
             <label class="sr-only" for="doc-switch">پزشک</label>
-            <select class="select" id="doc-switch" onchange="location.href='/admin/schedules/'+this.value">
+            <select class="select" id="doc-switch" data-nav-prefix="/admin/schedules/">
                 @foreach (var d in Model.Doctors)
                 {
                     <option value="@d.Id" selected="@(d.Id == Model.Doctor.Id)">@d.FullName</option>

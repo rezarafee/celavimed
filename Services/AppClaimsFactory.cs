@@ -13,7 +13,8 @@ public class AppClaimsFactory : UserClaimsPrincipalFactory<ApplicationUser, Iden
     protected override async Task<ClaimsIdentity> GenerateClaimsAsync(ApplicationUser user)
     {
         var id = await base.GenerateClaimsAsync(user);
-        id.AddClaim(new Claim("FullName", user.FullName ?? user.UserName ?? ""));
+        id.AddClaim(new Claim(AppClaims.FullName, user.FullName ?? user.UserName ?? ""));
+        if (user.MustChangePassword) id.AddClaim(new Claim(AppClaims.MustChangePassword, "1"));
         return id;
     }
 }

@@ -147,6 +147,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .alert-success { background: var(--mineral-100); color: #1E5A55; }
 .alert-error { background: var(--danger-100); color: #8A2532; }
 .alert-info { background: var(--orchid-100); color: var(--orchid-600); }
+.alert-warn { background: var(--amber-100); color: #7A4E12; }
 
 /* ---------- تقویم شمسی (مشترک بین سایت و پنل) ---------- */
 .jcal { user-select: none; }

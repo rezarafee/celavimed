@@ -28,7 +28,7 @@
             <div class="field">
                 <label asp-for="Password">@(isNew ? "رمز عبور" : "رمز عبور جدید")</label>
                 <input class="input ltr-input" asp-for="Password" type="password" autocomplete="new-password" />
-                <span class="hint">@(isNew ? "حداقل ۸ کاراکتر و یک عدد." : "اگر نمی‌خواهید عوض شود، خالی بگذارید.")</span>
+                <span class="hint">@(isNew ? "حداقل ۸ کاراکتر و یک عدد. رمز موقتی است و کاربر در اولین ورود باید عوضش کند." : "اگر نمی‌خواهید عوض شود، خالی بگذارید. رمز تازه موقتی است.")</span>
             </div>
             <div class="field span-2">
                 <span class="label">نقش</span>
@@ -58,14 +58,3 @@
         <button class="btn btn-primary btn-block" type="submit">@Ui.Icon("check")ذخیره‌ی کاربر</button>
     </div>
 </form>
-
-@section Scripts {
-<script>
-    (function () {
-        const pick = document.getElementById("doctor-pick");
-        const sync = () => pick.hidden = document.querySelector("#role-chips input:checked")?.value !== "Secretary";
-        document.querySelectorAll("#role-chips input").forEach(i => i.addEventListener("change", sync));
-        sync();
-    })();
-</script>
-}
