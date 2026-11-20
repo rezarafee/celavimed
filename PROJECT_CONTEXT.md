@@ -172,6 +172,7 @@ wwwroot/
 | `/admin/services` | خدمات و تخصص‌ها | FrontDesk |
 | `/admin/stages` | افزودن، حذف، تغییر نام، رنگ، آیکون و ترتیب مراحل | Managers |
 | `/admin/users` | کاربران و نقش‌ها | Managers |
+| `GET /admin/search/patients?q=` | جستجوی سریع بیمار (JSON، ۸ نتیجه) با نام، موبایل یا کد پیگیری؛ منشی فقط بیماران پزشکان خودش. کادر بزرگ در داشبورد و کادر کوچک در نوار بالای بقیه‌ی صفحه‌ها (`_PatientSearch.cshtml`، میان‌بر «/») | Staff |
 | `/admin/inventory?group&q&flag` | انبار: ارزش موجودی، کمبود، نزدیک انقضا، تاریخ گذشته؛ کالاها گروه‌به‌گروه با نوار موجودی | Inventory |
 | `/admin/inventory/groups` | گروه‌ها و مشخصه‌های اختصاصی هر گروه | Inventory |
 | `/admin/inventory/items/new`، `/items/{id}/edit` | فرم کالا (مشخصه‌های گروه با انتخاب گروه عوض می‌شود) و موجودی اولیه | Inventory |

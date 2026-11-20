@@ -344,6 +344,131 @@
     $$("input[data-money]").forEach((inp) => { fmt(inp); inp.addEventListener("input", () => fmt(inp)); });
   }
 
+  /* ---------- جستجوی سریع بیمار ---------- */
+  function initPatientSearch() {
+    const forms = $$("[data-patient-search]");
+    if (!forms.length) return;
+    const latin = (s) => s.replace(/[۰-۹]/g, (d) => "۰۱۲۳۴۵۶۷۸۹".indexOf(d)).replace(/[٠-٩]/g, (d) => "٠١٢٣٤٥٦٧٨٩".indexOf(d));
+
+    // متن را با برجسته کردن بخش منطبق، بدون innerHTML می‌سازد
+    function mark(el, text, term) {
+      const i = term ? latin(text).toLowerCase().indexOf(latin(term).toLowerCase()) : -1;
+      if (i < 0) { el.textContent = text; return; }
+      const m = document.createElement("mark");
+      m.textContent = text.slice(i, i + term.length);
+      el.append(text.slice(0, i), m, text.slice(i + term.length));
+    }
+
+    forms.forEach((form) => {
+      const input = $(".psearch-input", form);
+      const pop = $(".psearch-pop", form);
+      let items = [], active = -1, timer = 0, ctrl = null, lastTerm = "";
+
+      const close = () => { pop.hidden = true; input.setAttribute("aria-expanded", "false"); active = -1; };
+      const open = () => { pop.hidden = false; input.setAttribute("aria-expanded", "true"); };
+      const setActive = (i) => {
+        active = i;
+        $$(".psearch-item", pop).forEach((el, k) => el.classList.toggle("is-active", k === i));
+        if (i >= 0) $$(".psearch-item", pop)[i]?.scrollIntoView({ block: "nearest" });
+      };
+
+      function render(list, term) {
+        items = list;
+        pop.textContent = "";
+        if (!list.length) {
+          const empty = document.createElement("div");
+          empty.className = "psearch-empty";
+          empty.textContent = `بیماری با «${term}» پیدا نشد.`;
+          pop.appendChild(empty);
+        }
+        list.forEach((p, i) => {
+          const a = document.createElement("a");
+          a.className = "psearch-item";
+          a.href = p.url;
+          a.setAttribute("role", "option");
+          const av = document.createElement("span");
+          av.className = "psearch-avatar";
+          av.textContent = (p.name || "؟").trim().charAt(0);
+          const body = document.createElement("span");
+          body.className = "psearch-body";
+          const nm = document.createElement("b");
+          mark(nm, p.name, term);
+          const mob = document.createElement("span");
+          mob.className = "psearch-mobile ltr";
+          mark(mob, p.mobile, /\d/.test(latin(term)) ? latin(term).replace(/\D/g, "") : "");
+          const meta = document.createElement("small");
+          meta.textContent = p.next ? `نوبت بعدی: ${p.next}` : p.last ? `آخرین مراجعه ${p.last} · ${p.visits} نوبت` : `${p.visits} نوبت`;
+          if (p.next) meta.classList.add("has-next");
+          body.append(nm, mob, meta);
+          a.append(av, body);
+          a.addEventListener("mouseenter", () => setActive(i));
+          pop.appendChild(a);
+        });
+        const all = document.createElement("a");
+        all.className = "psearch-all";
+        all.href = `/admin/patients?q=${encodeURIComponent(term)}`;
+        all.textContent = "همه‌ی نتایج در فهرست بیماران";
+        pop.appendChild(all);
+        open();
+        setActive(list.length ? 0 : -1);
+      }
+
+      async function search() {
+        const term = input.value.trim();
+        if (term.length < 2) { close(); lastTerm = ""; return; }
+        if (term === lastTerm && !pop.hidden) return;
+        lastTerm = term;
+        ctrl?.abort();
+        ctrl = new AbortController();
+        form.classList.add("is-loading");
+        try {
+          const res = await fetch(`/admin/search/patients?q=${encodeURIComponent(term)}`, { signal: ctrl.signal, headers: { Accept: "application/json" } });
+          if (!res.ok) throw new Error();
+          if (input.value.trim() === term) render(await res.json(), term);
+        } catch (e) {
+          if (e.name !== "AbortError") close();
+        } finally {
+          form.classList.remove("is-loading");
+        }
+      }
+
+      input.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(search, 180); });
+      input.addEventListener("focus", () => { if (items.length && input.value.trim().length >= 2) open(); });
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "ArrowDown" && !pop.hidden) { e.preventDefault(); setActive(Math.min(active + 1, items.length - 1)); }
+        else if (e.key === "ArrowUp" && !pop.hidden) { e.preventDefault(); setActive(Math.max(active - 1, 0)); }
+        else if (e.key === "Escape") { close(); input.blur(); }
+      });
+      // Enter: بیمار انتخاب‌شده، وگرنه فهرست بیماران با همین عبارت
+      form.addEventListener("submit", (e) => {
+        if (input.value.trim().length < 2) { e.preventDefault(); input.focus(); return; }
+        const pick = items[active];
+        if (!pop.hidden && pick && input.value.trim() === lastTerm) { e.preventDefault(); location.href = pick.url; }
+      });
+      document.addEventListener("click", (e) => { if (!form.contains(e.target)) close(); });
+    });
+
+    // میان‌بر «/» برای رفتن به جستجو
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "/" || e.ctrlKey || e.metaKey || e.altKey) return;
+      const t = e.target;
+      if (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
+      const input = $(".psearch-hero .psearch-input") || $(".psearch-bar .psearch-input");
+      if (!input) return;
+      e.preventDefault();
+      $(".topbar-search")?.classList.add("is-open");
+      input.focus();
+    });
+
+    // موبایل: دکمه‌ی ذره‌بین نوار بالا کادر جستجو را باز و بسته می‌کند
+    $$("[data-search-toggle]").forEach((b) => b.addEventListener("click", () => {
+      const box = document.getElementById(b.getAttribute("aria-controls"));
+      if (!box) return;
+      box.classList.toggle("is-open");
+      if (box.classList.contains("is-open")) $(".psearch-input", box)?.focus();
+    }));
+  }
+
   document.addEventListener("DOMContentLoaded", () => {
     initSidebar();
     initBoard();
@@ -355,6 +480,7 @@
     initUserForm();
     initNewAppointment();
     initInventory();
+    initPatientSearch();
     const flash = $("[data-flash]");
     if (flash) toast(flash.dataset.flash, flash.dataset.flashError === "1");
   });

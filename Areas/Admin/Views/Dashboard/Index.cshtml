@@ -1,4 +1,5 @@
 @model DashboardVm
+@inject AccessScope Scope
 @{
     var name = User.FindFirst("FullName")?.Value ?? "";
 }
@@ -12,6 +13,18 @@
         <a class="btn btn-primary" href="/admin/board">@Ui.Icon("square-kanban")مراحل امروز</a>
     </div>
 </div>
+
+@if (Scope.CanEditFlow)
+{
+    <section class="find-patient" aria-labelledby="find-title">
+        <span class="find-arch" aria-hidden="true">@Ui.Icon("users")</span>
+        <div class="find-body">
+            <h3 id="find-title">پیدا کردن پرونده‌ی بیمار</h3>
+            <p>نام، شماره موبایل یا کد پیگیری را بنویسید؛ با انتخاب بیمار مستقیم به پرونده‌اش می‌روید.</p>
+            <partial name="_PatientSearch" model="@("hero")" />
+        </div>
+    </section>
+}
 
 <section class="journey" aria-labelledby="journey-title">
     <div class="journey-head">

@@ -512,3 +512,85 @@ dialog.modal { overflow: visible; }
 @media (max-width: 720px) {
   .inv-top-stats .stat:last-child { grid-column: 1 / -1; }
 }
+
+/* ---------- جستجوی سریع بیمار ---------- */
+.psearch { position: relative; display: flex; align-items: center; }
+.psearch-icon { position: absolute; inset-inline-start: 14px; color: var(--text-3); display: grid; pointer-events: none; }
+.psearch-input {
+  width: 100%; min-height: 42px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface);
+  padding: 0 44px 0 40px; padding-inline-start: 40px; padding-inline-end: 44px; font: inherit; font-size: 14.5px; color: var(--text);
+  transition: border-color .15s, box-shadow .15s;
+}
+.psearch-input::placeholder { color: var(--text-3); }
+.psearch-input:focus { outline: 0; border-color: var(--orchid); box-shadow: var(--focus); }
+.psearch-input::-webkit-search-cancel-button { display: none; }
+.psearch-kbd {
+  position: absolute; inset-inline-end: 12px; min-width: 22px; height: 22px; display: grid; place-items: center;
+  border: 1px solid var(--line-strong); border-radius: 6px; font: 600 12px/1 var(--font); color: var(--text-3); background: var(--surface-2);
+}
+.psearch-input:focus ~ .psearch-kbd { opacity: 0; }
+.psearch.is-loading .psearch-icon { animation: psearch-pulse .8s ease-in-out infinite alternate; }
+@keyframes psearch-pulse { to { color: var(--orchid); } }
+
+.psearch-pop {
+  position: absolute; top: calc(100% + 8px); inset-inline: 0; z-index: 70; max-height: min(440px, 70vh); overflow-y: auto;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow-pop); padding: 6px;
+}
+.psearch-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; color: var(--text); }
+.psearch-item.is-active, .psearch-item:hover { background: var(--orchid-100); color: var(--text); }
+.psearch-avatar {
+  width: 36px; height: 44px; flex: none; border-radius: var(--arch); display: grid; place-items: center;
+  background: linear-gradient(180deg, var(--quartz), #C99AB8); color: var(--plum-900); font-family: var(--display); font-size: 17px;
+}
+.psearch-body { display: grid; grid-template-columns: 1fr auto; column-gap: 12px; min-width: 0; flex: 1; }
+.psearch-body b { font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.psearch-mobile { font-size: 13.5px; color: var(--text-2); justify-self: end; }
+.psearch-body small { grid-column: 1 / -1; font-size: 12.5px; color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.psearch-body small.has-next { color: var(--mineral); }
+.psearch mark { background: none; color: var(--orchid-600); font-weight: 800; text-decoration: underline; text-decoration-color: var(--quartz); text-underline-offset: 3px; text-decoration-thickness: 3px; }
+.psearch-empty { padding: 18px 14px 10px; color: var(--text-2); font-size: 14px; }
+.psearch-all { display: block; margin-top: 4px; padding: 10px 12px; border-top: 1px solid var(--line); font-size: 13.5px; font-weight: 600; color: var(--orchid); }
+
+/* نسخه‌ی نوار بالا */
+.topbar-search { flex: 0 1 380px; margin-inline-start: 8px; }
+.topbar-search-toggle { display: none; }
+
+/* کادر بزرگ داشبورد */
+.find-patient {
+  position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 26px; align-items: center;
+  padding: 26px 30px; margin-bottom: 18px; border-radius: var(--radius-lg);
+  background: linear-gradient(115deg, var(--quartz-200) 0%, #fff 55%, var(--orchid-100) 100%); border: 1px solid #EBDCE6;
+}
+.find-patient::after {
+  content: ""; position: absolute; inset-inline-end: 34px; bottom: 0; width: 130px; height: 150px; pointer-events: none;
+  border-radius: 999px 999px 0 0; border: 1px solid rgba(123, 74, 130, .14); border-bottom: 0;
+}
+.find-arch { width: 74px; height: 92px; border-radius: var(--arch); display: grid; place-items: center; background: var(--plum-900); color: var(--quartz); }
+.find-arch .icon { width: 30px; height: 30px; }
+.find-body { position: relative; z-index: 1; min-width: 0; }
+.find-body h3 { font-family: var(--display); font-size: 22px; line-height: 1.5; }
+.find-body p { color: var(--text-2); font-size: 14px; margin: 2px 0 14px; }
+.psearch-hero { max-width: 680px; }
+.psearch-hero .psearch-input { min-height: 56px; font-size: 16px; padding-inline-start: 50px; box-shadow: 0 10px 26px -18px rgba(36, 18, 42, .45); border-color: #E3D6E6; }
+.psearch-hero .psearch-icon { inset-inline-start: 18px; color: var(--orchid); }
+.psearch-hero .psearch-kbd { inset-inline-end: 16px; }
+
+@media (max-width: 1100px) { .topbar-search { flex-basis: 300px; } }
+@media (max-width: 960px) {
+  .topbar-search-toggle { display: inline-flex; margin-inline-start: auto; }
+  .topbar-search-toggle + .topbar-date { margin-inline-start: 0; }
+  .topbar-search {
+    display: none; position: absolute; top: 100%; inset-inline: 0; margin: 0; padding: 10px 16px 12px;
+    background: rgba(246, 244, 248, .97); border-bottom: 1px solid var(--line); backdrop-filter: blur(10px);
+  }
+  .topbar-search.is-open { display: block; }
+  .psearch-kbd { display: none; }
+}
+@media (max-width: 720px) {
+  .find-patient { grid-template-columns: 1fr; padding: 20px 18px; gap: 0; }
+  .find-arch { display: none; }
+  .find-body h3 { font-size: 19px; }
+  .psearch-hero .psearch-input { min-height: 52px; font-size: 15px; }
+  .psearch-body { grid-template-columns: minmax(0, 1fr); }
+  .psearch-mobile { justify-self: start; font-size: 12.5px; }
+}

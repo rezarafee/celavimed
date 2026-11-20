@@ -13,6 +13,7 @@
     var roleTitle = Roles.All.Where(r => User.IsInRole(r)).Select(Roles.Title).FirstOrDefault() ?? "";
     var isManager = Scope.IsManager;
     var isFrontDesk = Scope.CanManageSchedules;
+    var canSearch = Scope.CanEditFlow;
     var initial = await Flow.InitialStageAsync();
     var pending = await (await Scope.AppointmentsAsync())
         .CountAsync(a => a.Status == AppointmentStatus.Active && a.StageId == initial.Id && a.Date >= Clock.Today);
@@ -100,6 +101,13 @@
         <header class="topbar">
             <button class="btn btn-ghost btn-icon side-toggle" type="button" data-side-toggle aria-label="باز و بسته کردن منو">@Ui.Icon("panel-right-close")</button>
             <h1>@title</h1>
+            @if (canSearch && nav != "dashboard")
+            {
+                <div class="topbar-search" id="topbar-search">
+                    <partial name="~/Areas/Admin/Views/Shared/_PatientSearch.cshtml" model="@("bar")" />
+                </div>
+                <button class="btn btn-ghost btn-icon topbar-search-toggle" type="button" data-search-toggle aria-label="جستجوی بیمار" aria-controls="topbar-search">@Ui.Icon("search")</button>
+            }
             <div class="topbar-date">@Ui.Icon("calendar-days", "icon-sm")<span>امروز</span> @Jalali.Long(Clock.Today)</div>
         </header>
         <main class="content">

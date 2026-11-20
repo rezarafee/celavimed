@@ -1,0 +1,15 @@
+@model string
+@* جستجوی سریع بیمار؛ Model یکی از "hero" (داشبورد) یا "bar" (نوار بالا) است *@
+@{
+    var hero = Model == "hero";
+    var id = hero ? "ps-hero" : "ps-bar";
+}
+<form class="psearch psearch-@Model" method="get" action="/admin/patients" role="search" data-patient-search autocomplete="off">
+    <label class="sr-only" for="@id">جستجوی بیمار</label>
+    <span class="psearch-icon">@Ui.Icon("search", hero ? null : "icon-sm")</span>
+    <input class="psearch-input" id="@id" name="q" type="search" maxlength="60"
+           placeholder="@(hero ? "نام بیمار، شماره موبایل یا کد پیگیری…" : "جستجوی بیمار…")"
+           role="combobox" aria-expanded="false" aria-controls="@id-list" aria-autocomplete="list" enterkeyhint="search" />
+    <kbd class="psearch-kbd" aria-hidden="true">/</kbd>
+    <div class="psearch-pop" id="@id-list" role="listbox" hidden></div>
+</form>
