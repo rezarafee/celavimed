@@ -1,0 +1,88 @@
+@model GroupForm
+@{
+    var list = (List<InventoryGroup>)ViewBag.List;
+    var editing = Model.Id != 0;
+    var fields = Model.Fields.ToList();
+    if (fields.Count == 0) fields.Add(new GroupFieldInput());
+}
+<div class="page-head">
+    <div>
+        <h2>گروه‌های انبار</h2>
+        <p>هر گروه، مثل «بوتاکس»، چند کالا دارد. مشخصه‌هایی که فقط به این گروه مربوط است را هم اینجا تعریف کنید.</p>
+    </div>
+    <div class="page-actions"><a class="btn btn-ghost" href="/admin/inventory">@Ui.Icon("arrow-right")بازگشت به انبار</a></div>
+</div>
+
+<div class="split">
+    <div class="stage-list">
+        @if (list.Count == 0)
+        {
+            <section class="card"><div class="empty">@Ui.Icon("layers")<b>هنوز گروهی ساخته نشده</b>از فرم کنار اولین گروه را بسازید؛ مثلا بوتاکس، فیلر، مزوتراپی یا مواد مصرفی.</div></section>
+        }
+        @foreach (var g in list)
+        {
+            <div class="card stage-item" style="--c:@g.Color;@(g.IsActive ? "" : "opacity:.55")">
+                <span class="lane-icon">@Ui.Icon("package")</span>
+                <div class="stage-item-body">
+                    <b>@g.Name @if (!g.IsActive) { <span class="pill pill-gray">غیرفعال</span> }</b>
+                    <span>@g.Items.Count کالا@(string.IsNullOrEmpty(g.Description) ? "" : " · " + g.Description)</span>
+                    @if (g.Fields.Count > 0)
+                    {
+                        <div class="field-tags">@foreach (var f in g.Fields.OrderBy(f => f.SortOrder)) { <span>@f.Name</span> }</div>
+                    }
+                </div>
+                <div class="cell-actions">
+                    <a class="btn btn-ghost btn-sm btn-icon" href="/admin/inventory?group=@g.Id" aria-label="کالاهای @g.Name" title="کالاها">@Ui.Icon("eye", "icon-sm")</a>
+                    <a class="btn btn-ghost btn-sm btn-icon" href="/admin/inventory/groups?edit=@g.Id" aria-label="ویرایش @g.Name" title="ویرایش">@Ui.Icon("pencil", "icon-sm")</a>
+                    <form asp-antiforgery="true" method="post" action="/admin/inventory/groups/@g.Id/delete" data-confirm="گروه «@g.Name» حذف شود؟">
+                        <button class="btn btn-ghost btn-sm btn-icon range-del" aria-label="حذف @g.Name" title="حذف">@Ui.Icon("trash-2", "icon-sm")</button>
+                    </form>
+                </div>
+            </div>
+        }
+    </div>
+
+    <form asp-antiforgery="true" class="card card-pad" method="post" action="/admin/inventory/groups/save">
+        <h3 style="font-size:16px;margin-bottom:16px">@(editing ? "ویرایش گروه" : "گروه جدید")</h3>
+        <input type="hidden" asp-for="Id" />
+        <div class="field">
+            <label asp-for="Name">نام گروه</label>
+            <input class="input" asp-for="Name" placeholder="مثلا بوتاکس" required maxlength="100" />
+        </div>
+        <div class="field">
+            <label asp-for="Description">توضیح</label>
+            <input class="input" asp-for="Description" placeholder="مثلا انواع سم بوتولینوم" maxlength="300" />
+        </div>
+        <div class="grid-form">
+            <div class="field">
+                <label asp-for="Color">رنگ</label>
+                <input class="color-input" type="color" asp-for="Color" />
+            </div>
+            <div class="field">
+                <label asp-for="SortOrder">ترتیب</label>
+                <input class="input" type="number" asp-for="SortOrder" />
+            </div>
+        </div>
+        <div class="field" data-field-list>
+            <span class="label">مشخصه‌های اختصاصی این گروه</span>
+            <span class="hint" style="margin-top:-2px">علاوه بر قیمت، شرکت سازنده، کشور و تأمین‌کننده که برای همه هست. مثلا «واحد در هر ویال» یا «نوع رقیق‌سازی».</span>
+            <div class="field-rows">
+                @for (var i = 0; i < fields.Count; i++)
+                {
+                    <div class="field-row">
+                        <input type="hidden" name="Fields[@i].Id" value="@fields[i].Id" data-f="id" />
+                        <input class="input" name="Fields[@i].Name" value="@fields[i].Name" placeholder="نام مشخصه" maxlength="60" data-f="name" />
+                        <button type="button" class="btn btn-ghost btn-sm btn-icon range-del" data-remove-row aria-label="حذف مشخصه">@Ui.Icon("x", "icon-sm")</button>
+                    </div>
+                }
+            </div>
+            <button type="button" class="btn btn-ghost btn-sm" data-add-row style="justify-self:start">@Ui.Icon("plus", "icon-sm")مشخصه‌ی دیگر</button>
+            @if (editing) { <span class="hint">اگر مشخصه‌ای را حذف کنید، مقدارش از همه‌ی کالاهای این گروه پاک می‌شود.</span> }
+        </div>
+        <label class="check" style="margin-bottom:18px"><input type="checkbox" asp-for="IsActive" />فعال است</label>
+        <div style="display:flex;gap:8px">
+            <button class="btn btn-primary" type="submit">@Ui.Icon("check")@(editing ? "ذخیره" : "ساخت گروه")</button>
+            @if (editing) { <a class="btn btn-ghost" href="/admin/inventory/groups">انصراف</a> }
+        </div>
+    </form>
+</div>

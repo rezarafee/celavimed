@@ -14,6 +14,8 @@ public static class Roles
     public const string Managers = SuperAdmin + "," + Admin;
     public const string FrontDesk = SuperAdmin + "," + Admin + "," + Secretary;
     public const string Staff = SuperAdmin + "," + Admin + "," + Secretary + "," + Finance;
+    /// <summary>انبار مواد اولیه: مدیران و واحد مالی</summary>
+    public const string Inventory = SuperAdmin + "," + Admin + "," + Finance;
     public const string Everyone = SuperAdmin + "," + Admin + "," + Secretary + "," + Finance + "," + User;
 
     public static string Title(string role) => role switch

@@ -3,7 +3,7 @@ using Celavimed.Models;
 
 namespace Celavimed.Areas.Admin.Models;
 
-public record JDateField(string Name, DateOnly? Value, string Placeholder = "انتخاب تاریخ", bool AllowEmpty = false, bool SubmitOnChange = false);
+public record JDateField(string Name, DateOnly? Value, string Placeholder = "انتخاب تاریخ", bool AllowEmpty = false, bool SubmitOnChange = false, string ClearLabel = "همه‌ی روزها");
 
 public class DashboardVm
 {

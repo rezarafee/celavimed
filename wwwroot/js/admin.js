@@ -225,6 +225,125 @@
     $$("dialog [data-close]").forEach((b) => b.addEventListener("click", () => b.closest("dialog").close()));
   }
 
+
+  /* ---------- فرم‌ها: ارسال خودکار و پرش با انتخاب (به‌جای onchange درون‌خطی، به خاطر CSP) ---------- */
+  function initAutoSubmit() {
+    $$("select[data-autosubmit]").forEach((s) => s.addEventListener("change", () => s.form?.submit()));
+    $$("select[data-nav-prefix]").forEach((s) => s.addEventListener("change", () => {
+      if (/^\d+$/.test(s.value)) location.href = s.dataset.navPrefix + s.value;
+    }));
+  }
+
+  /* ---------- فرم کاربر: انتخاب پزشکان فقط برای منشی ---------- */
+  function initUserForm() {
+    const pick = document.getElementById("doctor-pick");
+    if (!pick) return;
+    const sync = () => { pick.hidden = document.querySelector("#role-chips input:checked")?.value !== "Secretary"; };
+    $$("#role-chips input").forEach((i) => i.addEventListener("change", sync));
+    sync();
+  }
+
+  /* ---------- نوبت تلفنی: خدمات پزشک و ساعت‌های آزاد ---------- */
+  function initNewAppointment() {
+    const form = document.getElementById("new-appt");
+    if (!form) return;
+    const doc = form.querySelector("#n-doc"), svc = form.querySelector("#n-svc");
+    const date = form.querySelector("input[name=Date]"), time = form.querySelector("#n-time"), box = form.querySelector("#n-slots");
+
+    function filterServices() {
+      const allowed = (doc.selectedOptions[0]?.dataset.services || "").split(",").filter(Boolean);
+      for (const o of svc.options) if (o.value) o.hidden = allowed.length > 0 && !allowed.includes(o.value);
+      if (svc.selectedOptions[0]?.hidden) svc.value = "";
+    }
+    async function loadSlots() {
+      if (!doc.value || !date.value) return;
+      box.innerHTML = '<span class="hint">در حال دریافت ساعت‌ها…</span>';
+      const res = await fetch(`/admin/appointments/slots?doctorId=${encodeURIComponent(doc.value)}&date=${encodeURIComponent(date.value)}`);
+      const slots = res.ok ? await res.json() : [];
+      if (!slots.length) { box.innerHTML = '<span class="hint">این پزشک در این روز نوبت نمی‌دهد.</span>'; return; }
+      box.innerHTML = "";
+      for (const s of slots) {
+        const l = document.createElement("label");
+        const r = document.createElement("input");
+        r.type = "radio"; r.name = "_slot"; r.value = s.start; r.disabled = !s.free;
+        const span = document.createElement("span");
+        span.textContent = s.start;
+        if (!s.free) span.className = "slot-taken";
+        l.append(r, span);
+        if (s.start === time.value && s.free) r.checked = true;
+        r.addEventListener("change", () => { time.value = s.start; });
+        box.appendChild(l);
+      }
+    }
+    doc.addEventListener("change", () => { filterServices(); time.value = ""; loadSlots(); });
+    date.addEventListener("change", () => { time.value = ""; loadSlots(); });
+    filterServices();
+    loadSlots();
+  }
+
+  /* ---------- انبار ---------- */
+  function initInventory() {
+    // مشخصه‌های اختصاصی گروه: افزودن و حذف ردیف
+    $$("[data-field-list]").forEach((box) => {
+      const rows = $(".field-rows", box);
+      const reindex = () => $$(".field-row", rows).forEach((r, i) => {
+        $("[data-f=id]", r).name = `Fields[${i}].Id`;
+        $("[data-f=name]", r).name = `Fields[${i}].Name`;
+      });
+      const bind = (r) => $("[data-remove-row]", r).addEventListener("click", () => {
+        if ($$(".field-row", rows).length > 1) r.remove();
+        else { $("[data-f=id]", r).value = "0"; $("[data-f=name]", r).value = ""; }
+        reindex();
+      });
+      $$(".field-row", rows).forEach(bind);
+      $("[data-add-row]", box).addEventListener("click", () => {
+        const last = $$(".field-row", rows).pop();
+        const n = last.cloneNode(true);
+        $("[data-f=id]", n).value = "0";
+        $("[data-f=name]", n).value = "";
+        rows.appendChild(n);
+        bind(n);
+        reindex();
+        $("[data-f=name]", n).focus();
+      });
+    });
+
+    // فرم کالا: با عوض شدن گروه، مشخصه‌های همان گروه نمایش داده شود
+    const chips = document.getElementById("group-chips");
+    if (chips) {
+      const sync = () => {
+        const g = $("input:checked", chips)?.value;
+        $$("[data-group-fields]").forEach((sec) => {
+          const on = sec.dataset.groupFields === g;
+          sec.hidden = !on;
+          $$("input, textarea, select", sec).forEach((i) => { i.disabled = !on; });
+        });
+      };
+      $$("input", chips).forEach((i) => i.addEventListener("change", sync));
+      sync();
+    }
+
+    // شمارش بچ
+    const adj = document.getElementById("adjust-modal");
+    $$("[data-adjust]").forEach((b) => b.addEventListener("click", () => {
+      if (!adj) return;
+      $("form", adj).action = b.dataset.adjust;
+      $("[data-adjust-batch]", adj).textContent = b.dataset.batch;
+      $("[data-adjust-qty]", adj).textContent = b.dataset.qty;
+      $("#adj-count", adj).value = "";
+      adj.showModal();
+      $("#adj-count", adj).focus();
+    }));
+
+    // جداکننده‌ی هزارگان برای مبالغ (ارقام فارسی هم پذیرفته می‌شود)
+    const latin = (s) => s.replace(/[۰-۹]/g, (d) => "۰۱۲۳۴۵۶۷۸۹".indexOf(d)).replace(/[٠-٩]/g, (d) => "٠١٢٣٤٥٦٧٨٩".indexOf(d));
+    const fmt = (inp) => {
+      const digits = latin(inp.value).replace(/[^\d]/g, "");
+      inp.value = digits ? Number(digits).toLocaleString("en-US") : "";
+    };
+    $$("input[data-money]").forEach((inp) => { fmt(inp); inp.addEventListener("input", () => fmt(inp)); });
+  }
+
   document.addEventListener("DOMContentLoaded", () => {
     initSidebar();
     initBoard();
@@ -232,6 +351,10 @@
     initPhoto();
     initConfirm();
     initModals();
+    initAutoSubmit();
+    initUserForm();
+    initNewAppointment();
+    initInventory();
     const flash = $("[data-flash]");
     if (flash) toast(flash.dataset.flash, flash.dataset.flashError === "1");
   });

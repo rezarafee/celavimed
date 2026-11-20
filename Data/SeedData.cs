@@ -27,7 +27,7 @@ public static class SeedData
         {
             var userName = config["Seed:SuperAdminUserName"] ?? "superadmin";
             var password = config["Seed:SuperAdminPassword"] ?? "Celavi@1405";
-            var admin = new ApplicationUser { UserName = userName, FullName = "مدیر ارشد", EmailConfirmed = true };
+            var admin = new ApplicationUser { UserName = userName, FullName = "مدیر ارشد", EmailConfirmed = true, MustChangePassword = true };
             var res = await users.CreateAsync(admin, password);
             if (res.Succeeded)
             {
@@ -54,6 +54,8 @@ public static class SeedData
 
         if (config.GetValue("Seed:DemoData", false) && !await db.Doctors.AnyAsync())
             await SeedDemoAsync(db, users);
+        if (config.GetValue("Seed:DemoData", false))
+            await SeedInventory.RunAsync(db);
     }
 
     private static async Task SeedDemoAsync(AppDbContext db, UserManager<ApplicationUser> users)

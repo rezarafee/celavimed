@@ -86,7 +86,7 @@ wwwroot/
 
 | جدول | فیلدهای مهم | توضیح |
 |---|---|---|
-| `AspNetUsers` (ApplicationUser) | FullName, IsActive, CreatedAt | کاربران پنل |
+| `AspNetUsers` (ApplicationUser) | FullName, IsActive, MustChangePassword, CreatedAt | کاربران پنل؛ `MustChangePassword` یعنی رمز پیش‌فرض یا موقت است و باید عوض شود |
 | `Doctors` | FullName, Headline, Bio, MedicalCode, Phone, PhotoPath, IsActive, SortOrder | |
 | `Services` (ClinicService) | Name, Description, IsActive, SortOrder | خدمت/تخصص: بوتاکس، فیلر، لیزر و ... |
 | `DoctorServices` | DoctorId, ServiceId | چند خدمت برای هر پزشک |
@@ -97,11 +97,18 @@ wwwroot/
 | `Stages` (WorkflowStage) | Name, Description, Color, Icon, SortOrder, IsActive | مراحل پذیرش، قابل ویرایش |
 | `Appointments` | TrackingCode (یکتا), DoctorId, PatientId, ServiceId?, Date, StartTime, EndTime, StageId, Status, Notes, Amount, IsPaid, CreatedAt, ConfirmedAt | |
 | `StageLogs` (AppointmentStageLog) | AppointmentId, StageId, ChangedBy, Note, ChangedAt | تاریخچه‌ی جابه‌جایی مراحل |
+| `InventoryGroups` | Name, Description, Color, SortOrder, IsActive | گروه انبار مثل بوتاکس، فیلر (Models/Inventory.cs) |
+| `InventoryFields` | GroupId, Name, SortOrder | مشخصه‌ی اختصاصی گروه، مثلا «واحد در هر ویال» |
+| `InventoryItems` | GroupId, Name, Code, Manufacturer, Country, Supplier, Unit, PurchasePrice, SalePrice, MinStock, Storage, Notes, IsActive | کالا (زیرمجموعه‌ی گروه) |
+| `InventoryValues` | ItemId, FieldId, Value | مقدار مشخصه‌های اختصاصی هر کالا |
+| `InventoryBatches` | ItemId, BatchNo, ExpiryDate, Quantity (مانده), UnitCost, ReceivedAt | سری ساخت با تاریخ انقضا؛ موجودی کالا = جمع Quantity بچ‌ها |
+| `InventoryMovements` | ItemId, BatchId, Type (In/Out/Adjust), Quantity (با علامت), BalanceAfter, UnitPrice, Reason, Note, CreatedAt, CreatedBy | دفتر گردش انبار |
 
 - `AppointmentStatus`: `Active = 0`، `Cancelled = 1`، `NoShow = 2` (بیمار نیامد).
 - **جلوگیری از رزرو دوباره:** ایندکس یکتای فیلترشده روی `(DoctorId, Date, StartTime)` با فیلتر `[Status] = 0`، به‌علاوه‌ی بررسی هم‌پوشانی در `SlotService`.
 - رفتار حذف: نوبت با حذف پزشک، مرحله یا بیمار حذف نمی‌شود (Restrict)؛ حذف خدمت، `ServiceId` را خالی می‌کند (SetNull).
 - `Amount` عدد صحیح (long) است و در رابط کاربری «تومان» نمایش داده می‌شود.
+- **انبار:** مقدارها `decimal(12,2)` هستند (برای سی‌سی و میلی‌لیتر). همه‌ی تغییر موجودی از `Services/InventoryService.cs` می‌گذرد: `ReceiveAsync` (بچ هم‌شماره/هم‌انقضا/هم‌قیمت را پر می‌کند وگرنه بچ تازه)، `IssueAsync` (بدون انتخاب بچ، اول بچی که زودتر منقضی می‌شود؛ FEFO)، `AdjustAsync` (شمارش). هشدار انقضا `Inventory:ExpiryWarnDays` روز قبل (پیش‌فرض ۶۰). کالای دارای گردش حذف نمی‌شود، غیرفعال می‌شود. در SQLite روی ستون decimal مرتب‌سازی نکنید؛ در حافظه مرتب کنید.
 
 ### مراحل پیش‌فرض (SeedData)
 | ترتیب | نام | رنگ | آیکون |
@@ -126,6 +133,8 @@ wwwroot/
 | `Secretary` | منشی | فقط پزشکانی که به او سپرده شده: برنامه‌ی کاری، روز تعطیل، خدمات، رزروها، تایید، نوبت تلفنی، جابه‌جایی مراحل |
 | `Finance` | مالی | همه‌ی نوبت‌ها، ثبت مبلغ و پرداخت، جابه‌جایی مراحل |
 | `User` | کاربر عادی | فقط مشاهده |
+
+انبار (`/admin/inventory`) برای مدیر ارشد، مدیر و مالی است (`Roles.Inventory`).
 
 ترکیب‌های آماده برای `[Authorize(Roles = ...)]`: `Managers` (مدیر ارشد و مدیر)، `FrontDesk` (+ منشی)، `Staff` (+ مالی)، `Everyone` (+ کاربر عادی).
 `AccessScope` منشی را به پزشکان مرتبط از طریق `DoctorSecretaries` محدود می‌کند (`DoctorIdsAsync`، `AppointmentsAsync`، `DoctorsAsync`). `CanEditFlow` برای مدیران، منشی و مالی درست است.
@@ -163,6 +172,11 @@ wwwroot/
 | `/admin/services` | خدمات و تخصص‌ها | FrontDesk |
 | `/admin/stages` | افزودن، حذف، تغییر نام، رنگ، آیکون و ترتیب مراحل | Managers |
 | `/admin/users` | کاربران و نقش‌ها | Managers |
+| `/admin/inventory?group&q&flag` | انبار: ارزش موجودی، کمبود، نزدیک انقضا، تاریخ گذشته؛ کالاها گروه‌به‌گروه با نوار موجودی | Inventory |
+| `/admin/inventory/groups` | گروه‌ها و مشخصه‌های اختصاصی هر گروه | Inventory |
+| `/admin/inventory/items/new`، `/items/{id}/edit` | فرم کالا (مشخصه‌های گروه با انتخاب گروه عوض می‌شود) و موجودی اولیه | Inventory |
+| `/admin/inventory/items/{id}` | پرونده‌ی کالا: بچ‌ها، گردش، مودال ورود/خروج/شمارش | Inventory |
+| `/admin/inventory/movements?type&group&from&to` | دفتر گردش انبار | Inventory |
 
 ---
 
@@ -228,6 +242,9 @@ dotnet run
 - `Seed:SuperAdminUserName`، `Seed:SuperAdminPassword`، `Seed:DemoData`
 - `Clinic:Name` (= Celavimed)، `Clinic:Tagline`، `Clinic:Phone`، `Clinic:Address`
 - `Booking:WindowDays` (۶۰)، `Booking:MinLeadMinutes` (۳۰)
+- `Inventory:ExpiryWarnDays` (۶۰)
+- `ReverseProxy:Enabled` و `ReverseProxy:KnownProxies`: اگر پشت nginx یا پراکسی دیگری است، تا IP واقعی برای محدودیت نرخ خوانده شود
+- `DataProtection:KeysPath`: پوشه‌ی کلیدهای کوکی، تا با ری‌استارت کاربران بیرون نیفتند (در IIS لازم نیست)
 
 ### ساخت Migration جدید
 ```
@@ -248,6 +265,8 @@ dotnet ef migrations add <Name> -o Data/Migrations
 - `[hidden] { display: none !important; }` در base.css لازم است.
 - **ارقام:** فونت Vazirmatn FD ارقام لاتین را فارسی نمایش می‌دهد؛ در HTML ارقام لاتین بنویسید.
 - ساعت‌ها به وقت محلی تهران ذخیره می‌شوند، نه UTC (به‌جز `CreatedAt`، `ConfirmedAt` و `ChangedAt` که UTC هستند).
+- **CSP:** `script-src 'self'`؛ هیچ `<script>` درون‌خطی یا `onclick`/`onchange` ننویسید. رفتارها در `admin.js` با data-attribute (مثلا `data-autosubmit`، `data-nav-prefix`). استایل درون‌خطی مجاز است.
+- **Partial تاریخ:** `model="new JDateField(&quot;...&quot;)"` در تگ partial کامپایل نمی‌شود؛ مدل را در بلوک `@{ }` بسازید.
 
 ---
 
@@ -259,6 +278,14 @@ dotnet ef migrations add <Name> -o Data/Migrations
 - دو دور بازطراحی با skill frontend-design: صفحه‌ی رزرو، ورود و پنل ادمین.
 - همه‌ی صفحه‌ها با Playwright در دسکتاپ و موبایل تست شده‌اند: رزرو کامل، رزرو دوباره (409)، درخواست بدون توکن (400)، محدودیت نقش‌ها.
 
+**امنیت (۱۴۰۵/۰۸/۲۹، Services/Security.cs):**
+- رمز پیش‌فرض نصب و رمزهایی که مدیر می‌دهد «موقت» است؛ کاربر تا عوضش نکند به پنل دسترسی ندارد (`UseForcedPasswordChange`). رمز پیش‌فرض دیگر قابل انتخاب نیست.
+- هدرها: CSP، `X-Frame-Options: DENY`، `nosniff`، `Referrer-Policy`، `Permissions-Policy`، `no-store` برای پنل؛ هدر `Server` حذف شد.
+- محدودیت نرخ: ورود ۱۰ بار در ۵ دقیقه برای هر IP، خواندن تقویم ۹۰ در دقیقه، رزرو ۸ در ۱۰ دقیقه.
+- کاربر غیرفعال با `AppSignInManager.CanSignInAsync` رد می‌شود و پیامش فقط بعد از رمز درست نشان داده می‌شود؛ اعتبار کوکی هر ۲ دقیقه با SecurityStamp چک می‌شود.
+- کوکی‌ها: `Secure` در Production، `HttpOnly`، کوکی ضدجعل `SameSite=Strict`.
+- آپلود عکس پزشک: محتوای فایل (magic bytes) هم چک می‌شود.
+
 **مخزن:** https://github.com/rezarafee/celavimed، شاخه‌ی `main`. حساب گیت‌هاب متصل به Claude `rezarafee` است.
 
 **ایده‌های بعدی (هنوز انجام نشده)**
@@ -267,6 +294,7 @@ dotnet ef migrations add <Name> -o Data/Migrations
 - آپلود چند عکس قبل و بعد در پرونده‌ی بیمار.
 - پرداخت آنلاین بیعانه.
 - خروجی Excel از رزروها.
+- اتصال خروج انبار به نوبت بیمار (کسر خودکار مواد مصرفی هر خدمت).
 
 ---
 

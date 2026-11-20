@@ -91,7 +91,8 @@ public class UsersController : AdminController
         IdentityResult result;
         if (u == null)
         {
-            u = new ApplicationUser { UserName = form.UserName.Trim(), FullName = form.FullName.Trim(), PhoneNumber = form.PhoneNumber, IsActive = form.IsActive, EmailConfirmed = true };
+            // رمزی که مدیر می‌دهد موقتی است؛ کاربر در اولین ورود باید آن را عوض کند
+            u = new ApplicationUser { UserName = form.UserName.Trim(), FullName = form.FullName.Trim(), PhoneNumber = form.PhoneNumber, IsActive = form.IsActive, EmailConfirmed = true, MustChangePassword = true };
             result = await _users.CreateAsync(u, form.Password!);
         }
         else
@@ -105,6 +106,11 @@ public class UsersController : AdminController
             {
                 await _users.RemovePasswordAsync(u);
                 result = await _users.AddPasswordAsync(u, form.Password);
+                if (result.Succeeded && u.UserName != User.Identity?.Name)
+                {
+                    u.MustChangePassword = true;
+                    result = await _users.UpdateAsync(u);
+                }
             }
             if (result.Succeeded) await _users.UpdateSecurityStampAsync(u);
         }

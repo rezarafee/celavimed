@@ -25,7 +25,7 @@
     }
     <form method="get" action="/admin/board" style="display:flex;gap:10px;flex-wrap:wrap">
         <input type="hidden" name="date" value="@iso" />
-        <select class="select" name="doctorId" onchange="this.form.submit()" style="min-width:200px" aria-label="پزشک">
+        <select class="select" name="doctorId" data-autosubmit style="min-width:200px" aria-label="پزشک">
             <option value="">همه‌ی پزشکان</option>
             @foreach (var d in Model.Doctors) { <option value="@d.Id" selected="@(d.Id == Model.DoctorId)">@d.FullName</option> }
         </select>

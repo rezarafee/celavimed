@@ -83,6 +83,7 @@ public class DoctorsController : AdminController
             var ext = Path.GetExtension(form.Photo.FileName).ToLowerInvariant();
             if (!AllowedExt.Contains(ext)) ModelState.AddModelError(nameof(form.Photo), "فقط عکس JPG، PNG یا WEBP قابل قبول است.");
             else if (form.Photo.Length > MaxPhotoBytes) ModelState.AddModelError(nameof(form.Photo), "حجم عکس باید کمتر از ۴ مگابایت باشد.");
+            else if (!await ImageSniffer.LooksLikeImageAsync(form.Photo, ext)) ModelState.AddModelError(nameof(form.Photo), "این فایل واقعا عکس نیست یا خراب است.");
         }
 
         if (!ModelState.IsValid)

@@ -1,0 +1,222 @@
+@model ItemDetailsVm
+@{
+    var i = Model.Item;
+    var today = Clock.Today;
+    var isLow = i.MinStock > 0 && Model.Stock <= i.MinStock;
+    var values = i.Values.ToDictionary(v => v.FieldId, v => v.Value);
+    var fields = i.Group.Fields.OrderBy(f => f.SortOrder).ThenBy(f => f.Id).ToList();
+    var expiryField = new JDateField("expiry", null, "بدون تاریخ انقضا", AllowEmpty: true, ClearLabel: "بدون انقضا");
+}
+@functions {
+    static string Qty(decimal d) => InventoryService.Num(d);
+    static string Signed(decimal d) => (d > 0 ? "+" : d < 0 ? "−" : "") + InventoryService.Num(Math.Abs(d));
+}
+
+<section class="pt-hero inv-hero" style="--c:@i.Group.Color">
+    <span class="pt-avatar" aria-hidden="true">@Ui.Icon("package")</span>
+    <div style="position:relative;z-index:1;min-width:0">
+        <a class="inv-hero-group" href="/admin/inventory?group=@i.GroupId">@i.Group.Name</a>
+        <h2>@i.Name</h2>
+        <div class="pt-meta">
+            @if (!string.IsNullOrEmpty(i.Manufacturer)) { <span>@Ui.Icon("factory", "icon-sm")@i.Manufacturer@(string.IsNullOrEmpty(i.Country) ? "" : "، " + i.Country)</span> }
+            @if (!string.IsNullOrEmpty(i.Code)) { <span>@Ui.Icon("tag", "icon-sm")<span class="ltr">@i.Code</span></span> }
+            @if (!string.IsNullOrEmpty(i.Storage)) { <span>@Ui.Icon("snowflake", "icon-sm")@i.Storage</span> }
+            @if (!i.IsActive) { <span class="pill pill-gray">غیرفعال</span> }
+        </div>
+    </div>
+    <div class="pt-actions">
+        <button class="btn btn-light" type="button" data-open-modal="#in-modal">@Ui.Icon("arrow-down-to-line", "icon-sm")ورود کالا</button>
+        <button class="btn btn-outline" type="button" data-open-modal="#out-modal" @(Model.Stock <= 0 ? "disabled" : "")>@Ui.Icon("arrow-up-from-line", "icon-sm")خروج کالا</button>
+        <a class="btn btn-outline" href="/admin/inventory/items/@i.Id/edit">@Ui.Icon("pencil", "icon-sm")ویرایش</a>
+    </div>
+</section>
+
+<div class="pt-stats inv-stats">
+    <div class="card stat @(Model.Stock <= 0 ? "is-danger" : isLow ? "is-warn" : "")">
+        <div class="stat-label">موجودی فعلی</div>
+        <div class="stat-value">@Qty(Model.Stock)<small class="stat-unit">@i.Unit</small></div>
+        <div class="stat-sub">@(Model.Stock <= 0 ? "تمام شده" : isLow ? "کمتر از حداقل" : i.MinStock > 0 ? $"حداقل {Qty(i.MinStock)}" : "حداقل تعیین نشده")</div>
+    </div>
+    <div class="card stat">
+        <div class="stat-label">ارزش موجودی</div>
+        <div class="stat-value">@Ui.Money(Model.Value)</div>
+        <div class="stat-sub">تومان، با قیمت خرید هر بچ</div>
+    </div>
+    <div class="card stat">
+        <div class="stat-label">قیمت خرید</div>
+        <div class="stat-value">@Ui.Money(i.PurchasePrice)</div>
+        <div class="stat-sub">تومان برای هر @i.Unit</div>
+    </div>
+    <div class="card stat">
+        <div class="stat-label">قیمت فروش</div>
+        <div class="stat-value">@Ui.Money(i.SalePrice)</div>
+        <div class="stat-sub">تومان برای هر @i.Unit</div>
+    </div>
+    <div class="card stat">
+        <div class="stat-label">بچ‌های موجود</div>
+        <div class="stat-value">@Model.Batches.Count</div>
+        <div class="stat-sub">@(Model.Batches.FirstOrDefault(b => b.ExpiryDate.HasValue)?.ExpiryDate is { } e ? "نزدیک‌ترین انقضا " + Jalali.Short(e) : "بدون تاریخ انقضا")</div>
+    </div>
+</div>
+
+<div class="inv-detail">
+    <div class="grid">
+        <section class="card">
+            <div class="card-head">
+                <h3>بچ‌ها و تاریخ انقضا <span class="count-chip">@Model.Batches.Count</span></h3>
+                <span class="faint" style="font-size:13px">خروج خودکار از بچی است که زودتر منقضی می‌شود</span>
+            </div>
+            @if (Model.Batches.Count == 0)
+            {
+                <div class="empty">@Ui.Icon("package")<b>موجودی ندارد</b>با دکمه‌ی «ورود کالا» خرید جدید را ثبت کنید.</div>
+            }
+            else
+            {
+                <div class="table-wrap">
+                    <table class="table">
+                        <thead><tr><th>شماره بچ</th><th>تاریخ انقضا</th><th>موجودی</th><th class="hide-sm">قیمت خرید</th><th class="hide-sm">تاریخ ورود</th><th></th></tr></thead>
+                        <tbody>
+                        @foreach (var b in Model.Batches)
+                        {
+                            var days = b.ExpiryDate.HasValue ? b.ExpiryDate.Value.DayNumber - today.DayNumber : (int?)null;
+                            <tr>
+                                <td class="ltr-cell">@(b.BatchNo ?? "—")</td>
+                                <td>
+                                    @if (b.ExpiryDate is { } exp)
+                                    {
+                                        <span>@Jalali.Short(exp)</span>
+                                        @if (days < 0) { <span class="pill pill-red">منقضی</span> }
+                                        else if (days <= Model.WarnDays) { <span class="pill pill-amber">@days روز</span> }
+                                    }
+                                    else { <span class="faint">ندارد</span> }
+                                </td>
+                                <td><b>@Qty(b.Quantity)</b> <span class="faint">@i.Unit</span></td>
+                                <td class="hide-sm">@Ui.Money(b.UnitCost)</td>
+                                <td class="hide-sm">@Jalali.Short(DateOnly.FromDateTime(Clock.ToIran(b.ReceivedAt)))</td>
+                                <td>
+                                    <div class="cell-actions">
+                                        <button type="button" class="btn btn-ghost btn-sm" data-adjust="/admin/inventory/batches/@b.Id/adjust" data-batch="@(b.BatchNo ?? "بدون شماره")" data-qty="@Qty(b.Quantity)">@Ui.Icon("clipboard-check", "icon-sm")شمارش</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </section>
+
+        <section class="card">
+            <div class="card-head">
+                <h3>گردش کالا</h3>
+                <a class="btn btn-ghost btn-sm" href="/admin/inventory/movements?group=@i.GroupId">همه‌ی گردش‌ها @Ui.Icon("chevron-left", "icon-sm")</a>
+            </div>
+            @if (Model.Movements.Count == 0)
+            {
+                <div class="empty">@Ui.Icon("history")<b>هنوز گردشی ثبت نشده</b>هر ورود، خروج یا شمارش اینجا ثبت می‌شود.</div>
+            }
+            else
+            {
+                <ol class="moves">
+                    @foreach (var m in Model.Movements)
+                    {
+                        var (cls, label, icon) = m.Type switch
+                        {
+                            MovementType.In => ("in", "ورود", "arrow-down-to-line"),
+                            MovementType.Out => ("out", "خروج", "arrow-up-from-line"),
+                            _ => ("adj", "شمارش", "clipboard-check"),
+                        };
+                        <li class="move move-@cls">
+                            <span class="move-icon">@Ui.Icon(icon, "icon-sm")</span>
+                            <div class="move-body">
+                                <b>@label @(m.Reason != null && m.Reason != label ? "· " + m.Reason : "")</b>
+                                <span>@Jalali.DateTimeShort(m.CreatedAt) · @m.CreatedBy@(m.Batch?.BatchNo != null ? " · بچ " + m.Batch.BatchNo : "")</span>
+                                @if (!string.IsNullOrEmpty(m.Note)) { <p>@m.Note</p> }
+                            </div>
+                            <div class="move-qty">
+                                <b class="ltr">@Signed(m.Quantity)</b>
+                                <span>مانده @Qty(m.BalanceAfter)</span>
+                            </div>
+                        </li>
+                    }
+                </ol>
+            }
+        </section>
+    </div>
+
+    <aside class="card card-pad inv-spec">
+        <h3>مشخصات</h3>
+        <dl>
+            <div><dt>گروه</dt><dd>@i.Group.Name</dd></div>
+            <div><dt>شرکت سازنده</dt><dd>@(i.Manufacturer ?? "—")</dd></div>
+            <div><dt>کشور سازنده</dt><dd>@(i.Country ?? "—")</dd></div>
+            <div><dt>تأمین‌کننده</dt><dd>@(i.Supplier ?? "—")</dd></div>
+            <div><dt>کد کالا</dt><dd class="ltr-cell">@(i.Code ?? "—")</dd></div>
+            <div><dt>واحد شمارش</dt><dd>@i.Unit</dd></div>
+            <div><dt>حداقل موجودی</dt><dd>@(i.MinStock > 0 ? Qty(i.MinStock) + " " + i.Unit : "—")</dd></div>
+            @foreach (var f in fields)
+            {
+                <div><dt>@f.Name</dt><dd>@(values.TryGetValue(f.Id, out var v) ? v : "—")</dd></div>
+            }
+            <div><dt>شرایط نگهداری</dt><dd>@(i.Storage ?? "—")</dd></div>
+        </dl>
+        @if (!string.IsNullOrEmpty(i.Notes))
+        {
+            <p class="visit-note" style="white-space:pre-line">@i.Notes</p>
+        }
+    </aside>
+</div>
+
+<dialog class="modal" id="in-modal" aria-labelledby="in-title">
+    <form asp-antiforgery="true" method="post" action="/admin/inventory/items/@i.Id/in">
+        <div class="modal-head"><h3 id="in-title">ورود @i.Name</h3><button type="button" class="btn btn-ghost btn-sm btn-icon" data-close aria-label="بستن">@Ui.Icon("x")</button></div>
+        <div class="modal-body">
+            <div class="grid-form">
+                <div class="field"><label for="in-qty">تعداد (@i.Unit)</label><input class="input ltr-input" id="in-qty" name="qty" inputmode="decimal" required /></div>
+                <div class="field"><label for="in-cost">قیمت خرید هر واحد</label><input class="input ltr-input" id="in-cost" name="unitCost" inputmode="numeric" data-money value="@i.PurchasePrice" placeholder="تومان" /></div>
+                <div class="field"><label for="in-batch">شماره بچ</label><input class="input ltr-input" id="in-batch" name="batchNo" maxlength="60" /></div>
+                <div class="field"><span class="label">تاریخ انقضا</span><partial name="_JDate" model="expiryField" /></div>
+                <div class="field"><label for="in-reason">نوع ورود</label>
+                    <select class="select" id="in-reason" name="reason">@foreach (var r in InventoryReasons.In) { <option>@r</option> }</select></div>
+                <div class="field"><label for="in-note">توضیح</label><input class="input" id="in-note" name="note" maxlength="300" placeholder="مثلا شماره فاکتور" /></div>
+            </div>
+        </div>
+        <div class="modal-foot"><button class="btn btn-primary" type="submit">@Ui.Icon("check")ثبت ورود</button><button type="button" class="btn btn-ghost" data-close>انصراف</button></div>
+    </form>
+</dialog>
+
+<dialog class="modal" id="out-modal" aria-labelledby="out-title">
+    <form asp-antiforgery="true" method="post" action="/admin/inventory/items/@i.Id/out">
+        <div class="modal-head"><h3 id="out-title">خروج @i.Name</h3><button type="button" class="btn btn-ghost btn-sm btn-icon" data-close aria-label="بستن">@Ui.Icon("x")</button></div>
+        <div class="modal-body">
+            <p class="hint" style="margin-bottom:14px">موجودی فعلی: @Qty(Model.Stock) @i.Unit</p>
+            <div class="grid-form">
+                <div class="field"><label for="out-qty">تعداد (@i.Unit)</label><input class="input ltr-input" id="out-qty" name="qty" inputmode="decimal" required /></div>
+                <div class="field"><label for="out-reason">علت خروج</label>
+                    <select class="select" id="out-reason" name="reason">@foreach (var r in InventoryReasons.Out) { <option>@r</option> }</select></div>
+                <div class="field span-2"><label for="out-batch">از کدام بچ</label>
+                    <select class="select" id="out-batch" name="batchId">
+                        <option value="">خودکار؛ اول بچی که زودتر منقضی می‌شود</option>
+                        @foreach (var b in Model.Batches)
+                        {
+                            <option value="@b.Id">@(b.BatchNo ?? "بدون شماره") · @(b.ExpiryDate is { } e ? "انقضا " + Jalali.Short(e) : "بدون انقضا") · @Qty(b.Quantity) @i.Unit</option>
+                        }
+                    </select></div>
+                <div class="field span-2"><label for="out-note">توضیح</label><input class="input" id="out-note" name="note" maxlength="300" placeholder="مثلا نام بیمار یا پزشک" /></div>
+            </div>
+        </div>
+        <div class="modal-foot"><button class="btn btn-primary" type="submit">@Ui.Icon("check")ثبت خروج</button><button type="button" class="btn btn-ghost" data-close>انصراف</button></div>
+    </form>
+</dialog>
+
+<dialog class="modal" id="adjust-modal" aria-labelledby="adj-title">
+    <form asp-antiforgery="true" method="post" action="/admin/inventory/items/@i.Id">
+        <div class="modal-head"><h3 id="adj-title">شمارش بچ <span data-adjust-batch class="ltr"></span></h3><button type="button" class="btn btn-ghost btn-sm btn-icon" data-close aria-label="بستن">@Ui.Icon("x")</button></div>
+        <div class="modal-body">
+            <p class="hint" style="margin-bottom:14px">موجودی ثبت‌شده: <b data-adjust-qty></b> @i.Unit. عددی که واقعا در انبار شمردید را وارد کنید؛ اختلاف در گردش ثبت می‌شود.</p>
+            <div class="field"><label for="adj-count">موجودی شمارش‌شده</label><input class="input ltr-input" id="adj-count" name="counted" inputmode="decimal" required /></div>
+            <div class="field"><label for="adj-note">توضیح</label><input class="input" id="adj-note" name="note" maxlength="300" placeholder="مثلا انبارگردانی پایان ماه" /></div>
+        </div>
+        <div class="modal-foot"><button class="btn btn-primary" type="submit">@Ui.Icon("check")ثبت شمارش</button><button type="button" class="btn btn-ghost" data-close>انصراف</button></div>
+    </form>
+</dialog>

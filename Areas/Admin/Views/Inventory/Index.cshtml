@@ -1,0 +1,178 @@
+@model InventoryIndexVm
+@{
+    var today = Clock.Today;
+    var byGroup = Model.Rows.GroupBy(r => r.Item.GroupId).ToDictionary(g => g.Key, g => g.ToList());
+    var shownGroups = Model.Groups.Where(g => byGroup.ContainsKey(g.Id) || (Model.GroupId == g.Id)
+        || (Model.GroupId == null && string.IsNullOrEmpty(Model.Q) && string.IsNullOrEmpty(Model.Flag) && g.IsActive)).ToList();
+    var filtered = Model.GroupId.HasValue || !string.IsNullOrEmpty(Model.Q) || !string.IsNullOrEmpty(Model.Flag);
+}
+@functions {
+    static string Qty(decimal d) => InventoryService.Num(d);
+}
+
+<div class="page-head">
+    <div>
+        <h2>انبار مواد اولیه</h2>
+        <p>گروه‌ها، کالاها و موجودی هر سری ساخت. هشدار انقضا از @Model.WarnDays روز قبل نشان داده می‌شود.</p>
+    </div>
+    <div class="page-actions">
+        <a class="btn btn-ghost" href="/admin/inventory/movements">@Ui.Icon("history")گردش انبار</a>
+        <a class="btn btn-outline" href="/admin/inventory/groups">@Ui.Icon("layers")گروه‌ها</a>
+        @if (Model.Groups.Count > 0)
+        {
+            <a class="btn btn-primary" href="/admin/inventory/items/new@(Model.GroupId.HasValue ? "?group=" + Model.GroupId : "")">@Ui.Icon("plus")کالای جدید</a>
+        }
+    </div>
+</div>
+
+@if (Model.Groups.Count == 0)
+{
+    <section class="card inv-welcome">
+        <span class="inv-welcome-arch">@Ui.Icon("package")</span>
+        <div>
+            <h3>انبار هنوز خالی است</h3>
+            <p>اول گروه‌ها را بسازید، مثلا «بوتاکس»، «فیلر» یا «مزوتراپی». برای هر گروه می‌توانید مشخصه‌های اختصاصی هم تعریف کنید، مثل «واحد در هر ویال». بعد کالاها را با قیمت، شرکت سازنده و تاریخ انقضا اضافه کنید.</p>
+            <a class="btn btn-primary" href="/admin/inventory/groups">@Ui.Icon("plus")ساخت اولین گروه</a>
+        </div>
+    </section>
+    return;
+}
+
+<div class="stats inv-top-stats">
+    <div class="card stat stat-hero">
+        <div class="stat-label">@Ui.Icon("wallet", "icon-sm")ارزش موجودی انبار</div>
+        <div class="stat-value">@Ui.Money(Model.TotalValue)<small class="stat-unit">تومان</small></div>
+        <div class="stat-sub">@Model.ItemCount قلم کالای فعال در @Model.Groups.Count(g => g.IsActive) گروه</div>
+    </div>
+    <a class="card stat stat-link @(Model.LowCount > 0 ? "is-warn" : "")" href="/admin/inventory?flag=low">
+        <div class="stat-label">@Ui.Icon("triangle-alert", "icon-sm")کمبود موجودی</div>
+        <div class="stat-value">@Model.LowCount</div>
+        <div class="stat-sub">به حداقل موجودی رسیده‌اند</div>
+    </a>
+    <a class="card stat stat-link @(Model.ExpiringCount > 0 ? "is-warn" : "")" href="/admin/inventory?flag=expiring">
+        <div class="stat-label">@Ui.Icon("hourglass", "icon-sm")نزدیک انقضا</div>
+        <div class="stat-value">@Model.ExpiringCount</div>
+        <div class="stat-sub">تا @Model.WarnDays روز آینده</div>
+    </a>
+    <a class="card stat stat-link @(Model.ExpiredCount > 0 ? "is-danger" : "")" href="/admin/inventory?flag=expiring">
+        <div class="stat-label">@Ui.Icon("ban", "icon-sm")تاریخ گذشته</div>
+        <div class="stat-value">@Model.ExpiredCount</div>
+        <div class="stat-sub">کالا با بچ منقضی در انبار</div>
+    </a>
+</div>
+
+<section class="card inv-filter-card">
+    <form class="filters" method="get" action="/admin/inventory">
+        <div class="field" style="flex:2 1 220px">
+            <label for="iq">جستجو</label>
+            <input class="input" id="iq" name="q" value="@Model.Q" placeholder="نام، کد، شرکت سازنده یا تأمین‌کننده" />
+        </div>
+        <div class="field">
+            <label for="ig">گروه</label>
+            <select class="select" id="ig" name="group" data-autosubmit>
+                <option value="">همه‌ی گروه‌ها</option>
+                @foreach (var g in Model.Groups)
+                {
+                    <option value="@g.Id" selected="@(Model.GroupId == g.Id)">@g.Name</option>
+                }
+            </select>
+        </div>
+        <div class="field">
+            <label for="if">نمایش</label>
+            <select class="select" id="if" name="flag" data-autosubmit>
+                <option value="">کالاهای فعال</option>
+                <option value="low" selected="@(Model.Flag == "low")">فقط کمبود موجودی</option>
+                <option value="expiring" selected="@(Model.Flag == "expiring")">نزدیک انقضا یا تاریخ گذشته</option>
+                <option value="inactive" selected="@(Model.Flag == "inactive")">کالاهای غیرفعال</option>
+            </select>
+        </div>
+        <button class="btn btn-dark" type="submit">@Ui.Icon("search", "icon-sm")جستجو</button>
+        @if (filtered) { <a class="btn btn-ghost" href="/admin/inventory">@Ui.Icon("rotate-ccw", "icon-sm")همه</a> }
+    </form>
+</section>
+
+@if (filtered && Model.Rows.Count == 0)
+{
+    <section class="card"><div class="empty">@Ui.Icon("search")<b>کالایی با این مشخصات پیدا نشد</b>فیلترها را عوض کنید یا <a href="/admin/inventory">همه‌ی کالاها</a> را ببینید.</div></section>
+}
+
+@foreach (var g in shownGroups)
+{
+    var rows = byGroup.TryGetValue(g.Id, out var r) ? r : new List<StockRow>();
+    var extra = g.Fields.Take(2).ToList();
+    <section class="card inv-group" style="--c:@g.Color">
+        <header class="inv-group-head">
+            <span class="lane-icon">@Ui.Icon("package", "icon-sm")</span>
+            <div class="inv-group-title">
+                <h3>@g.Name <span class="count-chip">@rows.Count</span>@if (!g.IsActive) { <span class="pill pill-gray">غیرفعال</span> }</h3>
+                @if (!string.IsNullOrEmpty(g.Description)) { <p>@g.Description</p> }
+            </div>
+            <a class="btn btn-ghost btn-sm" href="/admin/inventory/items/new?group=@g.Id">@Ui.Icon("plus", "icon-sm")کالا در این گروه</a>
+        </header>
+        @if (rows.Count == 0)
+        {
+            <div class="inv-group-empty">هنوز کالایی در این گروه ثبت نشده. <a href="/admin/inventory/items/new?group=@g.Id">اولین کالا را اضافه کنید.</a></div>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table class="table inv-table">
+                    <thead>
+                    <tr>
+                        <th>کالا</th>
+                        <th class="hide-sm">شرکت سازنده</th>
+                        @foreach (var f in extra) { <th class="hide-md">@f.Name</th> }
+                        <th>موجودی</th>
+                        <th class="hide-sm">قیمت خرید</th>
+                        <th class="hide-sm">نزدیک‌ترین انقضا</th>
+                        <th>وضعیت</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var row in rows)
+                    {
+                        var i = row.Item;
+                        var level = row.IsOut ? "out" : row.IsLow ? "low" : "ok";
+                        var pct = i.MinStock > 0 ? (int)Math.Min(100, row.Stock / (i.MinStock * 3) * 100) : (row.Stock > 0 ? 100 : 0);
+                        <tr class="@(i.IsActive ? "" : "is-muted")">
+                            <td>
+                                <a class="inv-name" href="/admin/inventory/items/@i.Id">@i.Name</a>
+                                <div class="inv-sub">
+                                    @if (!string.IsNullOrEmpty(i.Code)) { <span class="ltr">@i.Code</span> }
+                                    @if (!string.IsNullOrEmpty(i.Manufacturer)) { <span class="show-sm">@i.Manufacturer</span> }
+                                </div>
+                            </td>
+                            <td class="hide-sm">@(i.Manufacturer ?? "—")@if (!string.IsNullOrEmpty(i.Country)) { <div class="inv-sub">@i.Country</div> }</td>
+                            @foreach (var f in extra) { <td class="hide-md">@(row.Values.TryGetValue(f.Id, out var v) ? v : "—")</td> }
+                            <td>
+                                <div class="inv-qty"><b>@Qty(row.Stock)</b> <span>@i.Unit</span></div>
+                                <div class="meter meter-@level" title="@(i.MinStock > 0 ? $"حداقل موجودی: {Qty(i.MinStock)}" : "")"><i style="width:@pct%"></i></div>
+                            </td>
+                            <td class="hide-sm">@(i.PurchasePrice.HasValue ? Ui.Money(i.PurchasePrice) : "—")</td>
+                            <td class="hide-sm">
+                                @if (row.NearestExpiry is { } exp)
+                                {
+                                    var days = exp.DayNumber - today.DayNumber;
+                                    <span>@Jalali.Short(exp)</span>
+                                    <div class="inv-sub @(days < 0 ? "txt-danger" : days <= Model.WarnDays ? "txt-warn" : "")">@(days < 0 ? $"{-days} روز گذشته" : days == 0 ? "امروز" : $"{days} روز مانده")</div>
+                                }
+                                else { <span class="faint">—</span> }
+                            </td>
+                            <td>
+                                <div class="inv-pills">
+                                    @if (!i.IsActive) { <span class="pill pill-gray">غیرفعال</span> }
+                                    else if (row.IsOut) { <span class="pill pill-red pill-dot">تمام شده</span> }
+                                    else if (row.IsLow) { <span class="pill pill-amber pill-dot">کمبود</span> }
+                                    @if (row.HasExpired) { <span class="pill pill-red">تاریخ گذشته</span> }
+                                    else if (row.ExpiresSoon) { <span class="pill pill-amber">نزدیک انقضا</span> }
+                                    @if (i.IsActive && !row.IsOut && !row.IsLow && !row.HasExpired && !row.ExpiresSoon) { <span class="pill pill-green pill-dot">موجود</span> }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+}
